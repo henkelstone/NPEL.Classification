@@ -120,11 +120,6 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, rf.
   # Copy the dataset, and generate (stochastic) training & test data
   if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
   data[,y] <- sort.levels(as.factor( grouping[as.numeric(as.character(data[,y]))] ))
-  #   N <- floor(nrow(data)/2)
-  #   s <- sample (nrow(data),size=N,replace=F)
-  #   train <- data[s,]; train[,y] <- trim.levels(train[,y])
-  #   test <- data[-s,]; test[,y]  <- trim.levels(test[,y])
-  #   rm (N,s)
   
   # Generate argument lists for each function type; i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -135,48 +130,46 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, rf.
   }
   rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=F))
   if (!rf.args$importance %in% c("permute", "random", "permute.ensemble","random.ensemble", "none")) rf.importance <- 'none'
-  nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular'))
+  nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=T))
   gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000))
   svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
   
   # Build the models
+  if (nn.args$scale) data <- cbind (data[,-match(x,names(data))],scale(data[,x]))
   fx <- formula(paste(y,"~",paste(x,collapse='+')))
   rF <- rFSRC <- fnn.FNN <- fnn.class <- kknn <- gbm <- svm <- NULL
-  if ('rF' %in% modelTypes) { cat("rF... "); 
+  if ('rF' %in% modelTypes) { cat("rF... ")
     rF <- do.call(randomForest::randomForest, c(list(formula=quote(fx), data=quote(data), importance=(rf.args$importance != 'none')), rf.args[names(rf.args) != 'importance'])) }
-  if ('rFSRC' %in% modelTypes) { cat("rFSRC... "); 
+  if ('rFSRC' %in% modelTypes) { cat("rFSRC... ")
     rFSRC <- do.call(randomForestSRC::rfsrc, c(list(formula=quote(fx), data=quote(data)), rf.args)) }
-  if ('fnn.FNN' %in% modelTypes) { cat("fnn.FNN... "); 
+  if ('fnn.FNN' %in% modelTypes) { cat("fnn.FNN... ");
     fnn.FNN <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=nn.args$k)) }
-  if ('fnn.class' %in% modelTypes) { cat("fnn.class... "); 
+  if ('fnn.class' %in% modelTypes) { cat("fnn.class... ")
     fnn.class <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=nn.args$k)) }
-  if ('kknn' %in% modelTypes) { cat("kknn... "); 
+  if ('kknn' %in% modelTypes) { cat("kknn... ")
     kknn <- do.call(kknn::train.kknn, list(formula=quote(fx), data=quote(data), kmax=nn.args$kmax, kernel=nn.args$kernel)) }
-  if ('gbm' %in% modelTypes) { cat("gbm... "); 
+  if ('gbm' %in% modelTypes) { cat("gbm... ")
     gbm <- do.call(gbm::gbm, c(list(formula=quote(fx), data=quote(data)), gbm.args)) }
-  if ('svm' %in% modelTypes) { cat("svm... "); 
+  if ('svm' %in% modelTypes) { cat("svm... ")
     svm <- do.call(e1071::svm, c(list(formula=quote(fx), data=quote(data)), svm.args)) }
   cat("\n")
-  
-  # Since fnn.FNN and class.fnn functions do not return a class object, label the classes for later identification. Also, randomForest labels as two classes
-  if ('rF' %in% modelTypes       ) class (rF) <- rev(class(rF))
-  if ('fnn.FNN' %in% modelTypes  ) fnn.FNN   <- structure (list(knn=fnn.FNN,   formula=fx, train=data[,x], classes=data[,y]), class='fnn.FNN')
-  if ('fnn.class' %in% modelTypes) fnn.class <- structure (list(knn=fnn.class, formula=fx, train=data[,x], classes=data[,y]), class='fnn.class')
-  if ('kknn' %in% modelTypes       ) class (kknn) <- rev(class(kknn))
+
+  # Since fnn.FNN and class.fnn functions do not return a class object, label the classes for later identification; randomForest labels as two classes; append useful data as attributes to these classes
+  if ('rF' %in% modelTypes)        class (rF) <- rev(class(rF)); attr(rF,'rf.args') <- rf.args
+  if ('rFSRC' %in% modelTypes)     attr(rFSRC,'rf.args') <- rf.args
+  if ('fnn.FNN' %in% modelTypes)   fnn.FNN   <- structure (list(knn=fnn.FNN,   formula=fx, train=data[,x], classes=data[,y]), class='fnn.FNN', nn.args=nn.args)
+  if ('fnn.class' %in% modelTypes) fnn.class <- structure (list(knn=fnn.class, formula=fx, train=data[,x], classes=data[,y]), class='fnn.class', nn.args=nn.args)
+  if ('kknn' %in% modelTypes)      class (kknn) <- rev(class(kknn)); attr(kknn,'nn.args') <- nn.args
+  if ('gbm' %in% modelTypes)       attr(gbm,'gbm.args') <- gbm.args
+  if ('svm' %in% modelTypes)       attr(svm,'svm.args') <- svm.args
 
   # Add attributes to the list of models and return it
   retObj <- list ('rF'=rF, 'rFSRC'= rFSRC, 'fnn.FNN'=fnn.FNN, 'fnn.class'=fnn.class, 'kknn'=kknn, 'gbm'=gbm, 'svm'=svm)
   retObj <- retObj[sapply(retObj, function(x) !is.null(x))]
-  attributes(retObj) <- list(
-    names=names(retObj),
+  attributes(retObj) <- c (attributes(retObj), list(
     modelTypes=modelTypes,
-    data=data, 
     formula=fx,
-    grouping=grouping,
-    rf.args=rf.args,
-    nn.args=nn.args,
-    gbm.args=gbm.args,
-    svm.args=svm.args)
+    grouping=grouping))
   return ( retObj )
 }
 
