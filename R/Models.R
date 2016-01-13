@@ -2,12 +2,12 @@
 # Created 9.Oct.2015 from prexisting code file started 6.Apr.2015
 
 #' An example of a transformation 'function'
-#' 
+#'
 #' This dataset ia a list, cast in matrix format, that can be used to lump ecotypes into coarser groups for analysis and plotting.
 #'   The current implementation includes vectors for: transformation, nameing, and plotting colours
 #'
-#' This default transformation 'function' maps several different grouping scenarios. Each is provided with labels for the groups 
-#'   as well as suggest colours, although in the case of identity this is merely the first \code{N} colours. 
+#' This default transformation 'function' maps several different grouping scenarios. Each is provided with labels for the groups
+#'   as well as suggest colours, although in the case of identity this is merely the first \code{N} colours.
 #' \tabular{lccc}{
 #' \bold{Ecotype} \tab \bold{Dominant Species} \tab \bold{Dominant Group} \tab \bold{Maximum Granularity}\cr
 #' BS 01 – Sand heather \tab 1 (barren) \tab 1 (barren) \tab 1 (sparse vegitation)\cr
@@ -38,7 +38,7 @@
 #' BS 26 – Rush sandy shore \tab 10 (shore) \tab 4 \tab 21 (shoreline)\cr
 #' BS 27 – Sedge rocky shore \tab 10 \tab 4 \tab 21\cr
 #' }
-#' 
+#'
 #' @section Warning:
 #' The following expressions will not work as transformation functions. See \code{\link{factor}}, esp. the 'Warning' section.
 #' \describe{
@@ -46,15 +46,15 @@
 #'   \item{\code{ecoGroup[['identity','transform']][vData$Ecotype]}}{will regroup based on the factor level \emph{indices}, NOT the factors}
 #'   \item{\code{as.numeric(vData$Ecotype]}}{returns the factor \emph{indices}, not a numeric representation of the factors}
 #'   \item{\code{(1:27)[vData$Ecotype]}}{returns the factor \emph{index} rather than the ecoGroup} }
-#' 
+#'
 #' @usage ecoGroup[['which.grouping','type.of.data']]
-#' @param which.grouping one of \code{c('identity','domSpecies','domGroup','maxGranularity'), where: \sQuote{identity} does no 
-#'   transformation, \sQuote{domSpecies} groups by the dominant species, \sQuote{domGroup} which groups based on 
-#'   coarse overstory groups, and \sQuote{maxGranularity} groups into what is deemed a maximum realistic granluarity 
+#' @param which.grouping one of \code{c('identity','domSpecies','domGroup','maxGranularity'), where: \sQuote{identity} does no
+#'   transformation, \sQuote{domSpecies} groups by the dominant species, \sQuote{domGroup} which groups based on
+#'   coarse overstory groups, and \sQuote{maxGranularity} groups into what is deemed a maximum realistic granluarity
 #'   given the the number of cases of each ecoType. See Details below for the specifics of each grouping. }
 #' @param type.of.data one of \code{c('transform','labels','colours'), where: \sQuote{transform} is the lookup vector,
 #'   \sQuote{labels} are meaningful names for each group, and \sQuote{colours} are suggest plotting colours. }
-#' 
+#'
 #' @format A matrix list with 4 rows (scenarios) and 3 columns (possible data types for that scenario)
 #' \describe{
 #'   \item{\sQuote{transform}}{a transformation vector converting input factors (Ecotypes) to output factors (groups). Functionally
@@ -62,19 +62,19 @@
 #'   \item{\sQuote{labels}}{names for the output groups}
 #'   \item{\sQuote{colours}}{suggested plotting colours for the output groups}
 #' }
-#' 
-#' @examples 
+#'
+#' @examples
 #' ecoGroup[['domSpecies','transform']][ as.numeric(as.character(vData$Ecotype)) ]
 "ecoGroup"
 
 #' Extracts the raster data corresponding to each point in the point dataset.
-#' 
+#'
 #' @param rData the raster data brick
 #' @param vData the point data
 #' @param colNames (optional) a collection of column names. If unspecified the function will pull them from the layers in the brick.
 #' @param na.omit remove NA points from the dataset?
 #' @return a data frame with the extracted raster data columns appended
-#' 
+#'
 extractPoints <- function (rData, vData, colNames=NULL, na.omit=T) {
   pointData <- data.frame()
   len <- nrow(vData)
@@ -89,7 +89,7 @@ extractPoints <- function (rData, vData, colNames=NULL, na.omit=T) {
     utils::setTxtProgressBar (pb,i)
   }
   close (pb)
-  
+
   # Assign the output array some meaningful names based on the layers requested
   if (is.null(colNames[1])) colNames <- names (rData)
   if (nrow(pointData) > 0) names (pointData)[(ncol(vData)+1):ncol(pointData)] <- colNames
@@ -97,29 +97,31 @@ extractPoints <- function (rData, vData, colNames=NULL, na.omit=T) {
 }
 
 #' A utility function to generate various classification models from a single input dataset
-#' 
+#'
 #' @param data: the input dataframe
 #' @param modelTypes: a vector of model types to generate. One or more of c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm','svm')
 #' @param x (optional): vector names of 'predictor' variables to use. Defaults to all columns less the y varible
 #' @param y (optional): the name of the column of the 'response' variable. Defaults to first column.
 #' @param grouping (optional): a transformation vector for input classes. Defaults to identity.
+#' @param echo (optional): should the function report it's progress?
 #' @param rf.args (optional): arguments to pass to random forest type models
 #' @param nn.args (optional): arguments to pass to nearest neighbour type models
 #' @param gbm.args (optional): arguments to pass to gbm
 #' @param svm.args (optional): arguments to pass to svm
 #' @return A named list of models
-#' 
-generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, rf.args=NULL, nn.args=NULL, gbm.args=NULL,svm.args=NULL) {
+#'
+generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, echo=F, rf.args=NULL, nn.args=NULL, gbm.args=NULL,svm.args=NULL) {
   # Preprocess which variables to use for x and y
   if (is.null(y)) y <- names(data)[1]
   if (!is.factor(data[,y])) stop ("y needs to be a factor")
   defaultCols <- names(data)[-match(y,names(data))]
   if (is.null(x)) cols <- defaultCols else cols <- x[x %in% defaultCols]
   x <- cols[0 == apply (data[cols],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
-  
+
   # Copy the dataset, and generate (stochastic) training & test data
-  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
-  data[,y] <- sort.levels(as.factor( grouping[as.numeric(as.character(data[,y]))] ))
+  #  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
+  #  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
+  if (is.null(grouping)) grouping <- 1:max(as.numeric(levels(data[,y])))        # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
   
   # Generate argument lists for each function type; i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -133,35 +135,35 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, rf.
   nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=T))
   gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000))
   svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
-  
+
   # Build the models
   if (nn.args$scale) data <- cbind (data[,-match(x,names(data))],scale(data[,x]))
   fx <- formula(paste(y,"~",paste(x,collapse='+')))
   rF <- rFSRC <- fnn.FNN <- fnn.class <- kknn <- gbm <- svm <- NULL
-  if ('rF' %in% modelTypes) { cat("rF... ")
+  if ('rF' %in% modelTypes) { if (echo) cat("rF... ")
     rF <- do.call(randomForest::randomForest, c(list(formula=quote(fx), data=quote(data), importance=(rf.args$importance != 'none')), rf.args[names(rf.args) != 'importance'])) }
-  if ('rFSRC' %in% modelTypes) { cat("rFSRC... ")
+  if ('rFSRC' %in% modelTypes) { if (echo) cat("rFSRC... ")
     rFSRC <- do.call(randomForestSRC::rfsrc, c(list(formula=quote(fx), data=quote(data)), rf.args)) }
-  if ('fnn.FNN' %in% modelTypes) { cat("fnn.FNN... ");
+  if ('fnn.FNN' %in% modelTypes) { if (echo) cat("fnn.FNN... ");
     fnn.FNN <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=nn.args$k)) }
-  if ('fnn.class' %in% modelTypes) { cat("fnn.class... ")
+  if ('fnn.class' %in% modelTypes) { if (echo) cat("fnn.class... ")
     fnn.class <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=nn.args$k)) }
-  if ('kknn' %in% modelTypes) { cat("kknn... ")
+  if ('kknn' %in% modelTypes) { if (echo) cat("kknn... ")
     kknn <- do.call(kknn::train.kknn, list(formula=quote(fx), data=quote(data), kmax=nn.args$kmax, kernel=nn.args$kernel)) }
-  if ('gbm' %in% modelTypes) { cat("gbm... ")
+  if ('gbm' %in% modelTypes) { if (echo) cat("gbm... ")
     gbm <- do.call(gbm::gbm, c(list(formula=quote(fx), data=quote(data)), gbm.args)) }
-  if ('svm' %in% modelTypes) { cat("svm... ")
+  if ('svm' %in% modelTypes) { if (echo) cat("svm... ")
     svm <- do.call(e1071::svm, c(list(formula=quote(fx), data=quote(data)), svm.args)) }
-  cat("\n")
+  if (echo) cat("\n")
 
   # Since fnn.FNN and class.fnn functions do not return a class object, label the classes for later identification; randomForest labels as two classes; append useful data as attributes to these classes
-  if ('rF' %in% modelTypes)        class (rF) <- rev(class(rF)); attr(rF,'rf.args') <- rf.args
-  if ('rFSRC' %in% modelTypes)     attr(rFSRC,'rf.args') <- rf.args
-  if ('fnn.FNN' %in% modelTypes)   fnn.FNN   <- structure (list(knn=fnn.FNN,   formula=fx, train=data[,x], classes=data[,y]), class='fnn.FNN', nn.args=nn.args)
-  if ('fnn.class' %in% modelTypes) fnn.class <- structure (list(knn=fnn.class, formula=fx, train=data[,x], classes=data[,y]), class='fnn.class', nn.args=nn.args)
-  if ('kknn' %in% modelTypes)      class (kknn) <- rev(class(kknn)); attr(kknn,'nn.args') <- nn.args
-  if ('gbm' %in% modelTypes)       attr(gbm,'gbm.args') <- gbm.args
-  if ('svm' %in% modelTypes)       attr(svm,'svm.args') <- svm.args
+  if ('rF' %in% modelTypes)        { class (rF) <- rev(class(rF)); attr(rF,'rf.args') <- rf.args }
+  if ('rFSRC' %in% modelTypes)     { attr(rFSRC,'rf.args') <- rf.args }
+  if ('fnn.FNN' %in% modelTypes)   { fnn.FNN   <- structure (list(knn=fnn.FNN,   formula=fx, train=data[,x], classes=data[,y]), class='fnn.FNN', nn.args=nn.args) }
+  if ('fnn.class' %in% modelTypes) { fnn.class <- structure (list(knn=fnn.class, formula=fx, train=data[,x], classes=data[,y]), class='fnn.class', nn.args=nn.args) }
+  if ('kknn' %in% modelTypes)      { class (kknn) <- rev(class(kknn)); attr(kknn,'nn.args') <- nn.args }
+  if ('gbm' %in% modelTypes)       { attr(gbm,'gbm.args') <- gbm.args }
+  if ('svm' %in% modelTypes)       { attr(svm,'svm.args') <- svm.args }
 
   # Add attributes to the list of models and return it
   retObj <- list ('rF'=rF, 'rFSRC'= rFSRC, 'fnn.FNN'=fnn.FNN, 'fnn.class'=fnn.class, 'kknn'=kknn, 'gbm'=gbm, 'svm'=svm)
@@ -174,14 +176,14 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, rf.
 }
 
 #' Generates basic error statistics for a classification model
-#' 
+#'
 #' @details Create some notes here on how each accuracy rate is computed and it's significance???
-#' 
+#'
 #' @param x the prediction classes
 #' @param y the validation classes
 #' @param digits (optional) the number of digits to output for the error
 #' @return the error data as a five element list: confusion matrix, user accuracy, producer accuracy, overall accuracy, kappa
-#' 
+#'
 classAcc <- function (pred, valid, digits=3, classNames=NULL) {
 
   pred <- trim.levels(pred);          valid <- trim.levels(valid)
@@ -191,7 +193,7 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
   userTot <- apply (conf,1,sum)
   prodTot <- apply (conf,2,sum)
   Tot <- sum(conf)
-  
+
   userAcc <- diag(conf)/userTot                               # User accuracy rates--
   prodAcc <- diag(conf)/prodTot                               # Producer accuracy rates--
   overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy rate
@@ -206,7 +208,7 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
 #' Generate accuracy statistics for a list of models
 #'
 #' Given a colleciton of models, this function computes several accuracy and VIMP metrics. See details for a description of each structure returned.
-#' 
+#'
 #' The function returns a list of different accuracy and VIMP datastructures
 #' \describe{
 #'   \item{\sQuote{confMatrix}}{a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame}
@@ -215,24 +217,24 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
 #'      the percent of pixels on the map that are what they are predicted to be; that is, the number of correctly identified sites over the number
 #'      that the model predicts to be in that class.}
 #'   \item{\sQuote{prodAcc}}{a data.frame in which each column represents the producer acceracy for a given model. Rows are the accuracies for
-#'      that input class. The final row is the overall producer accuracy for that model technique (the same as for userAcc). Producer accuracy, also called omission error, 
+#'      that input class. The final row is the overall producer accuracy for that model technique (the same as for userAcc). Producer accuracy, also called omission error,
 #'      is the the percent of pixels on the map that are labelled correctly; that is, the number of correctly identified sites over the number
 #'      that the actually are that class.}
 #'   \item{\sQuote{kappa}}{a vector of kappa values for each model type. The kappa-statistic is a measure of how much better this model predicts output
-#'      classes than would be done by chance alone. It is computed as the ratio of the oberved accuracy less that expected by chance, over 1-(chance 
+#'      classes than would be done by chance alone. It is computed as the ratio of the oberved accuracy less that expected by chance, over 1-(chance
 #'      probabilities). K = (observed accuracy – chance agreement) / (1 – chance agreement). ??? Add the formula as a tex formula... }
 #'   \item{\sQuote{VIMP}}{a named list of variable importance (VIMP) matrices. Each matrix is a data.frame in which columns are different classes
 #'      and rows are input variables used in the model. Entries in the table are the variable importance of an input variable on particular class.}
-#'   \item{\sQuote{VIMPoverall}}{a data.frame showing the overall variable importance (VIMP) for a given model. Columns are different models and entries 
+#'   \item{\sQuote{VIMPoverall}}{a data.frame showing the overall variable importance (VIMP) for a given model. Columns are different models and entries
 #'      in the table are the standardized VIMP for an imput variable on that model. Values have been standardized by column so they are (somewhat) comparable
-#'      as the algorithm by which VIMP is computed varies by model--hence the largest value will be 1 in every column. This makes the columns approximately 
+#'      as the algorithm by which VIMP is computed varies by model--hence the largest value will be 1 in every column. This makes the columns approximately
 #'      comparable, however, values should be taken with a grain of salt, and perhaps rank order is the most robust comparison.}
 #' }
 #'
 #' @param models a list of model objects on which to find error statistics
 #'
 #' @return a list of errors/accuracies: list(confMatrix, userAcc, prodAcc, kappa, VIMP, VIMPoverall)
-#' 
+#'
 modelAccs <- function (models, classNames=NULL) {
   confMatrix <- userAcc <- prodAcc <- overallAcc <- kappa <- VIMP <- VIMPoverall <- NULL
   envData <- attr(models,'data')
@@ -298,16 +300,59 @@ modelAccs <- function (models, classNames=NULL) {
   return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=VIMP, VIMPoverall=VIMPoverall))
 }
 
+#' Generate an estimate for variable importance for nearest neighbour models
+#'
+#' In an attempt to establish some indication of variable importance for nearest neighbour models, this algorithm computes the overall accuracies of the specified
+#'   model successively leaving out one predictor variable. The VIMP score is then calculated by linearly scaling the overall accuracies such that the version with
+#'   the largest drop in overall accuracy scores 1.0, and the model with the smallest drop in overall accuracy scores 0.0
+#'
+#' The function returns a named vector of the VIMP scores for each variable
+#'
+#' @param model is the nearest neighbour model to test
+#'
+nnVIMP <- function (model) {
+  # Extract info encoded in model objects
+  if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model)) {
+    fx <- model$formula
+    data <- cbind(model$classes,model$train)
+    names(data)[1] <- as.character(fx[[2]])
+  } else if ('kknn' %in% class(model)) {
+    fx <- formula(model$terms)
+    data <- model$data
+  } else stop ('Need to specify a model of one of the following classes: fnn.FNN, fnn.class, kknn')
+
+  # Build a new model, each one less one term, and compute its accuracy
+  acc <- list()
+  for (i in attr(terms(fx),'term.labels')) {
+    tmp.fx <- update.formula(fx,as.formula(paste0("~ . -",i)))
+    x <- attr(terms(tmp.fx),'term.labels')
+    y <- as.character(tmp.fx[[2]])
+    tmp.model <- generateModels(data, class(model)[[1]], x=x, y=y, nn.args=attr(model,'nn.args'), echo=F)[[1]]    # Since this is a list of length one, convert it to a simple model reference
+
+    if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model)) {
+      acc <- c(acc,classAcc(tmp.model$knn, data[,y])$overallAcc)
+    } else if ('kknn' %in% class(model)) {
+      acc <- c(acc,classAcc(tmp.model$fitted.values[[ tmp.model$best.parameters[[2]] ]], data[,y])$overallAcc)    # ??? This will break when more than one model kernel is specified!
+    }
+  }
+
+  # Convert overall accuracies to a VIMP metric
+  acc <- unlist (acc)
+  names (acc) <- attr(terms(fx),'term.labels')
+  acc <- max(acc)-acc
+  (acc <- acc/max(acc))
+}
+
 #' Compute the VIF of the terms in a formula
-#' 
+#'
 #' Given an input dataset, this function generates VIF output for each term on the left hand side of the specified
 #'   formula. It gives considerable output than the typcial VIF function--see Details.
-#' 
+#'
 #' The function returns a list with more terms than the typical VIF function:
 #' \describe{
 #'   \item{\sQuote{vif}}{the resulting VIF scores for each term in the model}
 #'   \item{\sQuote{rSquared}}{the resulting R-square with that term \emph{removed} from the model}
-#'   \item{\sQuote{est}}{a matrix of parameter estimates from each linear model. Rows are for each parameter 
+#'   \item{\sQuote{est}}{a matrix of parameter estimates from each linear model. Rows are for each parameter
 #'      that was estimated, and columns are the parameter estimates. Not that the parameter that is being
 #'      estimated is represented by a 0 in the estimates since it was not included in the model.}
 #'   \item{\sQuote{stdErr}}{a matrix of the standard error of each parameter estimate. Format is the same as for est.}
@@ -327,9 +372,9 @@ NPELvif <- function (formula, data) {
   t.value=matrix(NA,length(cols),length(cols)+1); dimnames(t.value) <- list(cols,c('(Intercept)',cols))
   p.value=matrix(NA,length(cols),length(cols)+1); dimnames(p.value) <- list(cols,c('(Intercept)',cols))
   rSq <- vector ('numeric',length(cols)); names(rSq) <- cols
-  
+
   for (i in 1:length(cols)) {
-    
+
     lmTmp <- lm (formula=update.formula(fx,paste0(cols[i],' ~ . -',cols[i])),data=df)
     sTmp <- summary(lmTmp)            # Following rbind looses rownames when sTmp is a matrix
     coeffs <- data.frame(sTmp$coefficients)

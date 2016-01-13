@@ -5,7 +5,8 @@
 \title{A utility function to generate various classification models from a single input dataset}
 \usage{
 generateModels(data, modelTypes, x = NULL, y = NULL, grouping = NULL,
-  rf.args = NULL, nn.args = NULL, gbm.args = NULL, svm.args = NULL)
+  echo = F, rf.args = NULL, nn.args = NULL, gbm.args = NULL,
+  svm.args = NULL)
 }
 \arguments{
 \item{x}{(optional): vector names of 'predictor' variables to use. Defaults to all columns less the y varible}
@@ -13,6 +14,8 @@ generateModels(data, modelTypes, x = NULL, y = NULL, grouping = NULL,
 \item{y}{(optional): the name of the column of the 'response' variable. Defaults to first column.}
 
 \item{grouping}{(optional): a transformation vector for input classes. Defaults to identity.}
+
+\item{echo}{(optional): should the function report it's progress?}
 
 \item{rf.args}{(optional): arguments to pass to random forest type models}
 

@@ -23,7 +23,7 @@ The function returns a list with more terms than the typical VIF function:
 \describe{
   \item{\sQuote{vif}}{the resulting VIF scores for each term in the model}
   \item{\sQuote{rSquared}}{the resulting R-square with that term \emph{removed} from the model}
-  \item{\sQuote{est}}{a matrix of parameter estimates from each linear model. Rows are for each parameter 
+  \item{\sQuote{est}}{a matrix of parameter estimates from each linear model. Rows are for each parameter
      that was estimated, and columns are the parameter estimates. Not that the parameter that is being
      estimated is represented by a 0 in the estimates since it was not included in the model.}
   \item{\sQuote{stdErr}}{a matrix of the standard error of each parameter estimate. Format is the same as for est.}

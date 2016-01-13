@@ -15,9 +15,9 @@
 ecoGroup[['which.grouping','type.of.data']]
 }
 \arguments{
-\item{which.grouping}{one of \code{c('identity','domSpecies','domGroup','maxGranularity'), where: \sQuote{identity} does no 
-transformation, \sQuote{domSpecies} groups by the dominant species, \sQuote{domGroup} which groups based on 
-coarse overstory groups, and \sQuote{maxGranularity} groups into what is deemed a maximum realistic granluarity 
+\item{which.grouping}{one of \code{c('identity','domSpecies','domGroup','maxGranularity'), where: \sQuote{identity} does no
+transformation, \sQuote{domSpecies} groups by the dominant species, \sQuote{domGroup} which groups based on
+coarse overstory groups, and \sQuote{maxGranularity} groups into what is deemed a maximum realistic granluarity
 given the the number of cases of each ecoType. See Details below for the specifics of each grouping. }}
 
 \item{type.of.data}{one of \code{c('transform','labels','colours'), where: \sQuote{transform} is the lookup vector,
@@ -28,8 +28,8 @@ This dataset ia a list, cast in matrix format, that can be used to lump ecotypes
   The current implementation includes vectors for: transformation, nameing, and plotting colours
 }
 \details{
-This default transformation 'function' maps several different grouping scenarios. Each is provided with labels for the groups 
-  as well as suggest colours, although in the case of identity this is merely the first \code{N} colours. 
+This default transformation 'function' maps several different grouping scenarios. Each is provided with labels for the groups
+  as well as suggest colours, although in the case of identity this is merely the first \code{N} colours.
 \tabular{lccc}{
 \bold{Ecotype} \tab \bold{Dominant Species} \tab \bold{Dominant Group} \tab \bold{Maximum Granularity}\cr
 BS 01 – Sand heather \tab 1 (barren) \tab 1 (barren) \tab 1 (sparse vegitation)\cr
