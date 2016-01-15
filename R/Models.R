@@ -110,7 +110,7 @@ extractPoints <- function (rData, vData, colNames=NULL, na.omit=T) {
 #' @param svm.args (optional): arguments to pass to svm
 #' @return A named list of models
 #'
-generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, echo=F, rf.args=NULL, nn.args=NULL, gbm.args=NULL,svm.args=NULL) {
+generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, echo=T, rf.args=NULL, nn.args=NULL, gbm.args=NULL,svm.args=NULL) {
   # Preprocess which variables to use for x and y
   if (is.null(y)) y <- names(data)[1]
   if (!is.factor(data[,y])) stop ("y needs to be a factor")
@@ -120,9 +120,10 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, ech
 
   # Copy the dataset, and generate (stochastic) training & test data
   #  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
-  #  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
   if (is.null(grouping)) grouping <- 1:max(as.numeric(levels(data[,y])))        # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
-  
+  data[,y] <- sort.levels(as.factor( grouping[as.numeric(as.character(data[,y]))] ))
+  data <- data[,c(y,x)]
+
   # Generate argument lists for each function type; i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
   #         importance for the randomForest package is boolean: FALSE if this is 'none' and TRUE otherwise
@@ -133,7 +134,7 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, ech
   rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=F))
   if (!rf.args$importance %in% c("permute", "random", "permute.ensemble","random.ensemble", "none")) rf.importance <- 'none'
   nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=T))
-  gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000))
+  gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000, keep.data=TRUE))
   svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
 
   # Build the models
@@ -156,14 +157,14 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, ech
     svm <- do.call(e1071::svm, c(list(formula=quote(fx), data=quote(data)), svm.args)) }
   if (echo) cat("\n")
 
-  # Since fnn.FNN and class.fnn functions do not return a class object, label the classes for later identification; randomForest labels as two classes; append useful data as attributes to these classes
-  if ('rF' %in% modelTypes)        { class (rF) <- rev(class(rF)); attr(rF,'rf.args') <- rf.args }
+  # Since fnn.FNN and class.fnn functions do not return a class object, label the classes for later identification; randomForest labels as two classes; append data as attributes to these classes when not already included
+  if ('rF' %in% modelTypes)        { class (rF) <- rev(class(rF)); attr(rF,'rf.args') <- rf.args; attr(rF,'data') <- data }
   if ('rFSRC' %in% modelTypes)     { attr(rFSRC,'rf.args') <- rf.args }
   if ('fnn.FNN' %in% modelTypes)   { fnn.FNN   <- structure (list(knn=fnn.FNN,   formula=fx, train=data[,x], classes=data[,y]), class='fnn.FNN', nn.args=nn.args) }
   if ('fnn.class' %in% modelTypes) { fnn.class <- structure (list(knn=fnn.class, formula=fx, train=data[,x], classes=data[,y]), class='fnn.class', nn.args=nn.args) }
   if ('kknn' %in% modelTypes)      { class (kknn) <- rev(class(kknn)); attr(kknn,'nn.args') <- nn.args }
   if ('gbm' %in% modelTypes)       { attr(gbm,'gbm.args') <- gbm.args }
-  if ('svm' %in% modelTypes)       { attr(svm,'svm.args') <- svm.args }
+  if ('svm' %in% modelTypes)       { attr(svm,'svm.args') <- svm.args; attr(svm,'data') <- data }
 
   # Add attributes to the list of models and return it
   retObj <- list ('rF'=rF, 'rFSRC'= rFSRC, 'fnn.FNN'=fnn.FNN, 'fnn.class'=fnn.class, 'kknn'=kknn, 'gbm'=gbm, 'svm'=svm)
@@ -205,6 +206,54 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
   return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, overallAcc=overallAcc, kappa=kappa))
 }
 
+#' Generate an estimate for variable importance for nearest neighbour models
+#'
+#' In an attempt to establish some indication of variable importance for nearest neighbour models, this algorithm computes the overall accuracies of the specified
+#'   model successively leaving out one predictor variable. The VIMP score is then calculated by linearly scaling the overall accuracies such that the version with
+#'   the largest drop in overall accuracy scores 1.0, and the model with the smallest drop in overall accuracy scores 0.0
+#'
+#' The function returns a named vector of the VIMP scores for each variable
+#'
+#' @param model is the nearest neighbour model to test
+#'
+nnVIMP <- function (model) {
+  # Extract info encoded in model objects
+  if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model)) {
+    fx <- model$formula
+    data <- cbind(model$classes,model$train)
+    names(data)[1] <- as.character(fx[[2]])
+    cA <- classAcc(model$knn, data[,1])
+  } else if ('kknn' %in% class(model)) {
+    fx <- formula(model$terms)
+    data <- model$data
+    cA <- classAcc(model$fitted.values[[ model$best.parameters[[2]] ]], data[,as.character(fx[[2]])])     # ??? This will break when more than one model kernel is specified!
+  } else stop ('Need to specify a model of one of the following classes: fnn.FNN, fnn.class, kknn')
+
+  # Build a new model, each one less one term, and compute its accuracy
+  VIMP <- t(data.frame(complete=cA$userAcc))
+  overall <- cA$overallAcc
+  for (i in attr(terms(fx),'term.labels')) {
+    tmp.fx <- update.formula(fx,as.formula(paste0("~ . -",i)))
+    x <- attr(terms(tmp.fx),'term.labels')
+    y <- as.character(tmp.fx[[2]])
+    tmp.model <- generateModels(data, class(model)[[1]], x=x, y=y, nn.args=attr(model,'nn.args'), echo=F)[[1]]    # Since this is a list of length one, convert it to a simple model reference
+
+    if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model))
+      cA <- classAcc(tmp.model$knn, data[,y])
+    else if ('kknn' %in% class(model))
+      cA <- classAcc(tmp.model$fitted.values[[ tmp.model$best.parameters[[2]] ]], data[,y])     # ??? This will break when more than one model kernel is specified!
+    VIMP <- rbind(VIMP,cA$userAcc)
+    overall <- c(overall,cA$overallAcc)
+  }
+
+  # Convert output accuracies to a VIMP metric
+  VIMP <- cbind(decreaseAcc=overall,VIMP)
+  VIMP <- -sweep(VIMP,2,VIMP[1,])
+  VIMP <- VIMP[2:nrow(VIMP),]
+  row.names(VIMP) <- attr(terms(fx),'term.labels')
+  (VIMP)
+}
+
 #' Generate accuracy statistics for a list of models
 #'
 #' Given a colleciton of models, this function computes several accuracy and VIMP metrics. See details for a description of each structure returned.
@@ -236,12 +285,13 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
 #' @return a list of errors/accuracies: list(confMatrix, userAcc, prodAcc, kappa, VIMP, VIMPoverall)
 #'
 modelAccs <- function (models, classNames=NULL) {
-  confMatrix <- userAcc <- prodAcc <- overallAcc <- kappa <- VIMP <- VIMPoverall <- NULL
-  envData <- attr(models,'data')
-  y <- envData[,as.character(attr(models,'formula')[[2]])]
+  confMatrix <- userAcc <- prodAcc <- kappa <- VIMP <- VIMPoverall <- NULL
+#  envData <- attr(models,'data')
+  y <- as.character(attr(models,'formula')[[2]])
   for (i in models) {
+# ??? Clean up this mess: repeated lines, small changes...
     if ('randomForest' %in% class(i)) {
-      tmp <- classAcc(i$predicted, y, classNames=classNames)
+      tmp <- classAcc(i$predicted, attr(i,'data')[,y], classNames=classNames)
       confMatrix <- c(confMatrix, list(rF=tmp$confMatrix))
       userAcc <- cbind(userAcc, rF=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, rF=c(tmp$prodAcc,overall=tmp$overallAcc))
@@ -251,7 +301,7 @@ modelAccs <- function (models, classNames=NULL) {
       VIMP <- c(VIMP, list(rF=tmp[,1:(ncol(tmp)-2)]))
       VIMPoverall <- cbind(VIMPoverall, rF=tmp[,ncol(tmp)-1]/max(tmp[,ncol(tmp)-1]))
     } else if ('rfsrc' %in% class(i)) {
-      tmp <- classAcc(i$class.oob, y, classNames=classNames)
+      tmp <- classAcc(i$class.oob, i$yvar, classNames=classNames)
       confMatrix <- c(confMatrix, list(rFSRC=tmp$confMatrix))
       userAcc <- cbind(userAcc, rFSRC=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, rFSRC=c(tmp$prodAcc,overall=tmp$overallAcc))
@@ -261,32 +311,37 @@ modelAccs <- function (models, classNames=NULL) {
       VIMP <- c(VIMP, list(rFSRC=tmp[,2:ncol(tmp)]))
       VIMPoverall <- cbind(VIMPoverall,rFSRC=tmp[,1]/max(tmp[,1]))
     } else if ('fnn.FNN' %in% class(i)) {
-      tmp <- classAcc(i$knn, y, classNames=classNames)
+      tmp <- classAcc(i$knn, i$classes, classNames=classNames)                                                # ??? Classnames is optional!
       confMatrix <- c(confMatrix, list(FNN=tmp$confMatrix))
       userAcc <- cbind(userAcc, knn.FNN=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, knn.FNN=c(tmp$prodAcc,overall=tmp$overallAcc))
       kappa <- c(kappa,tmp$kappa)
+      tmp <- nnVIMP(i)
+      if (!is.null(classNames)) colnames(tmp) <- classNames[as.numeric(colnames(tmp))]
+      VIMP <- c(VIMP, list(fnn.FNN=tmp[,2:ncol(tmp)]))
+      VIMPoverall <- cbind(VIMPoverall,fnn.FNN=tmp[,1])
     } else if ('fnn.class' %in% class(i)) {
-      tmp <- classAcc(i$knn, y, classNames=classNames)
+      tmp <- classAcc(i$knn, i$classes, classNames=classNames)                                                # ??? Classnames is optional!
       confMatrix <- c(confMatrix, list(FNN=tmp$confMatrix))
       userAcc <- cbind(userAcc, knn.class=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, knn.class=c(tmp$prodAcc,overall=tmp$overallAcc))
       kappa <- c(kappa,tmp$kappa)
+      tmp <- nnVIMP(i)
+      if (!is.null(classNames)) colnames(tmp) <- classNames[as.numeric(colnames(tmp))]
+      VIMP <- c(VIMP, list(fnn.class=tmp[,2:ncol(tmp)]))
+      VIMPoverall <- cbind(VIMPoverall,fnn.class=tmp[,1])
     } else if ('kknn' %in% class(i)) {
-      tmp <- classAcc(i$fitted.values[[ i$best.parameters[[2]] ]], y, classNames=classNames)
+      tmp <- classAcc(i$fitted.values[[ i$best.parameters[[2]] ]], i$data[,y], classNames=classNames)          # ??? Classnames is optional!
       confMatrix <- c(confMatrix, list(FNN=tmp$confMatrix))
       userAcc <- cbind(userAcc, kknn=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, kknn=c(tmp$prodAcc,overall=tmp$overallAcc))
       kappa <- c(kappa,tmp$kappa)
-      # kknn <- kknn::train.kknn (formula=attr(modelRun,'formula'), data=siteData, distance=2, kmax=2, kernel=c("rectangular","triangular"))
-      # kknn$fitted.values
-      # predict(kknn,siteData)
-      # kknn::kknn(formula=kknn$terms,train=kknn$data,test=kknn$data,d=1,k=kknn$best.parameters[[2]],kernel=kknn$best.parameters[[1]],na.action=na.pass())$fitted.values
-      # kknn$best.parameters
-      # kknn$fitted.values[[ kknn$best.parameters[[2]] ]]
-      # rm (kknn)
+      tmp <- nnVIMP(i)
+      if (!is.null(classNames)) colnames(tmp) <- classNames[as.numeric(colnames(tmp))]
+      VIMP <- c(VIMP, list(kknn=tmp[,2:ncol(tmp)]))
+      VIMPoverall <- cbind(VIMPoverall,kknn=tmp[,1])
     } else if ('gbm' %in% class(i)) {
-      tmp <- classAcc(factor(i$classes[apply(predict (i,envData,gbm::gbm.perf(i,plot.it=F),type='response'),1,which.max)]), y, classNames=classNames)
+      tmp <- classAcc( factor( i$classes[apply(predict (i,attr(i,'data'),gbm::gbm.perf(i,plot.it=F),type='response'),1,which.max)] ) , attr(i,'data')[,y], classNames=classNames)
       confMatrix <- c(confMatrix, list(gbm=tmp$confMatrix))
       userAcc <- cbind(userAcc, gbm=c(tmp$userAcc,overall=tmp$overallAcc))
       prodAcc <- cbind(prodAcc, gbm=c(tmp$prodAcc,overall=tmp$overallAcc))
@@ -298,49 +353,6 @@ modelAccs <- function (models, classNames=NULL) {
     }
   }
   return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=VIMP, VIMPoverall=VIMPoverall))
-}
-
-#' Generate an estimate for variable importance for nearest neighbour models
-#'
-#' In an attempt to establish some indication of variable importance for nearest neighbour models, this algorithm computes the overall accuracies of the specified
-#'   model successively leaving out one predictor variable. The VIMP score is then calculated by linearly scaling the overall accuracies such that the version with
-#'   the largest drop in overall accuracy scores 1.0, and the model with the smallest drop in overall accuracy scores 0.0
-#'
-#' The function returns a named vector of the VIMP scores for each variable
-#'
-#' @param model is the nearest neighbour model to test
-#'
-nnVIMP <- function (model) {
-  # Extract info encoded in model objects
-  if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model)) {
-    fx <- model$formula
-    data <- cbind(model$classes,model$train)
-    names(data)[1] <- as.character(fx[[2]])
-  } else if ('kknn' %in% class(model)) {
-    fx <- formula(model$terms)
-    data <- model$data
-  } else stop ('Need to specify a model of one of the following classes: fnn.FNN, fnn.class, kknn')
-
-  # Build a new model, each one less one term, and compute its accuracy
-  acc <- list()
-  for (i in attr(terms(fx),'term.labels')) {
-    tmp.fx <- update.formula(fx,as.formula(paste0("~ . -",i)))
-    x <- attr(terms(tmp.fx),'term.labels')
-    y <- as.character(tmp.fx[[2]])
-    tmp.model <- generateModels(data, class(model)[[1]], x=x, y=y, nn.args=attr(model,'nn.args'), echo=F)[[1]]    # Since this is a list of length one, convert it to a simple model reference
-
-    if ('fnn.FNN' %in% class(model) || 'fnn.class' %in% class(model)) {
-      acc <- c(acc,classAcc(tmp.model$knn, data[,y])$overallAcc)
-    } else if ('kknn' %in% class(model)) {
-      acc <- c(acc,classAcc(tmp.model$fitted.values[[ tmp.model$best.parameters[[2]] ]], data[,y])$overallAcc)    # ??? This will break when more than one model kernel is specified!
-    }
-  }
-
-  # Convert overall accuracies to a VIMP metric
-  acc <- unlist (acc)
-  names (acc) <- attr(terms(fx),'term.labels')
-  acc <- max(acc)-acc
-  (acc <- acc/max(acc))
 }
 
 #' Compute the VIF of the terms in a formula

@@ -5,7 +5,7 @@
 \title{A utility function to generate various classification models from a single input dataset}
 \usage{
 generateModels(data, modelTypes, x = NULL, y = NULL, grouping = NULL,
-  echo = F, rf.args = NULL, nn.args = NULL, gbm.args = NULL,
+  echo = T, rf.args = NULL, nn.args = NULL, gbm.args = NULL,
   svm.args = NULL)
 }
 \arguments{
