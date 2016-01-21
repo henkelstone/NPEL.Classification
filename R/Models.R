@@ -111,18 +111,13 @@ extractPoints <- function (rData, vData, colNames=NULL, na.omit=T) {
 #' @return A named list of models
 #'
 generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, echo=T, rf.args=NULL, nn.args=NULL, gbm.args=NULL,svm.args=NULL) {
-  # Preprocess which variables to use for x and y
+  # Preprocess which variables to use for x and y, and create a formula object
   if (is.null(y)) y <- names(data)[1]
   if (!is.factor(data[,y])) stop ("y needs to be a factor")
   defaultCols <- names(data)[-match(y,names(data))]
   if (is.null(x)) cols <- defaultCols else cols <- x[x %in% defaultCols]
   x <- cols[0 == apply (data[cols],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
-
-  # Copy the dataset, and generate (stochastic) training & test data
-  #  if (is.null(grouping)) grouping <- 1:length(levels(data[,y]))                 # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
-  if (is.null(grouping)) grouping <- 1:max(as.numeric(levels(data[,y])))        # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
-  data[,y] <- sort.levels(as.factor( grouping[as.numeric(as.character(data[,y]))] ))
-  data <- data[,c(y,x)]
+  fx <- formula(paste(y,"~",paste(x,collapse='+')))
 
   # Generate argument lists for each function type; i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -137,9 +132,13 @@ generateModels <- function (data, modelTypes, x=NULL, y=NULL, grouping=NULL, ech
   gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000, keep.data=TRUE))
   svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
 
+  # Transform the dataset, trim, and scale if necessary
+  if (is.null(grouping)) grouping <- 1:max(as.numeric(levels(data[,y])))        # Note! Care needs to be taken here... does this transformation function reference factor entry number or the actual value?
+  data[,y] <- sort.levels(as.factor( grouping[as.numeric(as.character(data[,y]))] ))
+  if (nn.args$scale) data <- cbind (data[,-match(x,names(data)),drop=F],scale(data[,x]))
+  else data <- data[,c(y,x)]
+
   # Build the models
-  if (nn.args$scale) data <- cbind (data[,-match(x,names(data))],scale(data[,x]))
-  fx <- formula(paste(y,"~",paste(x,collapse='+')))
   rF <- rFSRC <- fnn.FNN <- fnn.class <- kknn <- gbm <- svm <- NULL
   if ('rF' %in% modelTypes) { if (echo) cat("rF... ")
     rF <- do.call(randomForest::randomForest, c(list(formula=quote(fx), data=quote(data), importance=(rf.args$importance != 'none')), rf.args[names(rf.args) != 'importance'])) }
