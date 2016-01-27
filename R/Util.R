@@ -29,7 +29,28 @@ merge.levels <- function (x,y) {
   return ( sort.levels(x) )
 }
 
-#' Find the minimum extent of a Raster* object
+#' Merge the levels of two factors; the factors of y not present in x will be added to the x levels.
+#'
+#' @param x the factor to process
+#'
+#' @return the factor x with the levels of y merged to the x levels
+merge.levels <- function (x,y) {
+  x <- factor(x,union(levels(x),levels(y)))
+  return ( sort.levels(x) )
+}
+
+#' Retrieve the values within a factor object
+#'
+#' This function retrieves the *values* within a factor object. There is a subtle but serious gotcha when using factors
+#' that is outlined in the help for factor() under the Warning section. Notably, then using factors, what is returned
+#' is the *indicies* of the factor, not the values stored in the factor. This is fairly easy to catch when factors are
+#' type character, but can cause serious bugs when they are numeric. The purpose of this function is to provide an easy
+#' way to return the values stored within a factor
+factorValues <- function (x) {
+  as.numeric(as.character(x))
+}
+
+#' Find the minimum extent of a collection of Raster* object
 #'
 #' @param ... the Raster* objects to compare
 #'
@@ -37,7 +58,7 @@ merge.levels <- function (x,y) {
 minExtent <- function (...) {
   inL <- eval(substitute(alist(...)))
   ex <- extent(eval(inL[[1]]))
-  for (l in inL) {   
+  for (l in inL) {
     ex <- extent(c(max(ex@xmin,extent(eval(l))@xmin),
                    min(ex@xmax,extent(eval(l))@xmax),
                    max(ex@ymin,extent(eval(l))@ymin),

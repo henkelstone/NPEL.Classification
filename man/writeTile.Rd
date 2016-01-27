@@ -32,9 +32,10 @@ classes (one layer per possibility). Note: this may be a large dataset!}
 the new raster* object with the output landscape
 }
 \description{
-This function computes and outputs a generated landscape, and optionally the probabilities 
+This function computes and outputs a generated landscape, and optionally the probabilities
   of the winning class and/or every possible class.
-  
+}
+\details{
 Note: outputing all the probabilities can generate quite a large datafile, that is, in the order of a GB or more.
 }
 

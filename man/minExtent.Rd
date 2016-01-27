@@ -2,7 +2,7 @@
 % Please edit documentation in R/Util.R
 \name{minExtent}
 \alias{minExtent}
-\title{Find the minimum extent of a Raster* object}
+\title{Find the minimum extent of a collection of Raster* object}
 \usage{
 minExtent(...)
 }
@@ -13,6 +13,6 @@ minExtent(...)
 the minimum extent of all Raster* objects
 }
 \description{
-Find the minimum extent of a Raster* object
+Find the minimum extent of a collection of Raster* object
 }
 

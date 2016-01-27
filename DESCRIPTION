@@ -1,7 +1,7 @@
 Package: NPEL.Classification
 Type: Package
 Title: Classifaction and data-handling routines for NPEL Caribou Project
-Version: 0.1.0.9004
+Version: 0.2.0.9000
 Date: 2015-10-07
 Author: Jonathan Henkelman <jonathan.henkelman@usask.ca>
 Maintainer: Jonathan Henkelman <jonathan.henkelman@usask.ca>
@@ -10,13 +10,12 @@ BugReports: https://github.com/henkelstone/NPEL.Classification/issues
 Description: Includes functions for: inputing, massaging and cleaning up data;
     generating different classification models; generating output raster tiles;
     plotting resuting images.
-License: What license is it under?
+License: GPL (>= 2)
 LazyData: TRUE
 Imports:
     raster,
     maptools,
-    sp,
-    ggplot2,
+Suggests:
     randomForest,
     randomForestSRC,
     FNN,
@@ -24,4 +23,5 @@ Imports:
     kknn,
     gbm,
     e1071
+    ggplot2,
 RoxygenNote: 5.0.1

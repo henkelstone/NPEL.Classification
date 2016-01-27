@@ -5,14 +5,22 @@
 \title{Merge the levels of two factors; the factors of y not present in x will be added to the x levels.}
 \usage{
 \method{merge}{levels}(x, y)
+
+\method{merge}{levels}(x, y)
 }
 \arguments{
+\item{x}{the factor to process}
+
 \item{x}{the factor to process}
 }
 \value{
 the factor x with the levels of y merged to the x levels
+
+the factor x with the levels of y merged to the x levels
 }
 \description{
+Merge the levels of two factors; the factors of y not present in x will be added to the x levels.
+
 Merge the levels of two factors; the factors of y not present in x will be added to the x levels.
 }
 
