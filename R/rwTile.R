@@ -1,167 +1,226 @@
 # I/O routines for raster tiles
-# Created 9.Oct.2015 from prexisting code file started 6.Apr.2015
+# Created 9.Oct.2015 from pre-existing code file started 6.Apr.2015
 
-#' Read a collection of layers
+##### readTile #####
+#' Read a collection of tif layers from a folder
 #'
-#' The function reads a collection of geotiffs and creates a single raster.stack object
+#' The function reads a collection of geotiffs from a folder and creates a single raster.stack object. It is used to streamline the input of
+#' many layers at once since Rgdal does not, at the time of this writing (15.Feb.2016) allow the direct processing of raster gdb files. Each
+#' layer should be in it's own geoTiff, although multiple bands within a geoTiff are allowed. Each file should be named with the layer name
+#' (see parameters). Optional labels can be supplied, but if no, need to be supplied for all layers.
 #'
 #' @param rasterPath path to the raster file
-#' @param rasterName name of the file
-#' @param layers a character list of layers to read. The filename used will be 'rasterName_layer.tif'
-#' @param labels (optional) a list of names for the columns of the final raster. Will attempt to use the layer names if it appears there is only one layer per file.
-#' @param NAval the value to be interpreted as NA; passed to raster::NAvalue
+#' @param layers a character list of layer names to read. The filename used will be '<layer[i]>.tif'
+#' @param labels (optional) a list of names for the columns of the final raster; will use layer names if this is not specified.
+#' @param NAval (optional) the value to be interpreted as NA; passed to raster::NAvalue
 #' @return a raster.stack of the objects in the folder
 #'
-readTile <- function (rasterPath, rasterName, layers, labels=NULL, NAval=NULL) {
+#' @seealso See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
+#' @examples
+#' \dontrun{
+#' # Read egTile from the provided geoTiff's; gisPath must point to package installion folder.
+#' path <- system.file("extdata", "egTile", package = "testdat")
+#' rData <- readTile(gisPath, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+#'
+#' # Set the aspect layer to NA wherever slope is 0
+#' rData$asp <- calc (rData$asp,fun=function(x){ x[x == -1] <- NA; x })
+#' }
+#' @export
+readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
   retList <- list ()
-  rasterName <- sub('.tif','',rasterName)
-  for (l in layers) retList <- c(retList,  base=raster::brick(paste0(rasterPath,rasterName,l,'.tif')))
+  for (l in layers) retList <- c(retList,  raster::brick(paste0(rasterPath,l,'.tif')))
   retStack <- raster::stack(retList)
 
-  if (!is.null(labels)) names(retStack) <- labels
-  else if (raster::nlayers (retStack) == length(layers)) names(retStack) <- layers # If there is only one layer per file, then use the layers as names.
-
+  if (!is.null(labels) && length(names(retStack))==length(labels)) names(retStack) <- labels
   if (!is.null(NAval)) raster::NAvalue(retStack) <- NAval
   return (retStack)
 }
 
-#' Merge a list of raster objects into a single brick
+##### extractPoints #####
+#' Extracts the raster data corresponding to each point in the vector dataset.
 #'
-#' A utility function to merge a list of raster* objects and output them as a brick. Note that all
-#' the objects will need to obey the limitations of brick or this function will fail.
+#' This function looks up each point in a raster (point) dataset and returns the corresponding data from a raster.* object using sp::SpatialPoints. It is used to
+#' build combined remote-sensed and field data that can be input into a classification model.
 #'
-#' @param dataList a list of raster* objects
-#' @param path (optional) path to the output file. If unspecified, getwd() will be used.
-#' @param fileName (optional) output filename to associate with the new brick. If unspecified, the filename of the first element will be used.
-#' @return a brick with the specified data
+#' @param rData the raster data as a raster.* object; can be read in using \code{\link{readTile}}
+#' @param vData the point data as a SpatialPointsDataFrame
+#' @param locs the columns which contain the locations\ldots c(easting, northing)
+#' @param na.omit (optional) remove NA points from the dataset? defaults to TRUE
+#' @return a data frame with the combined data: the original vector data with the extracted raster data columns appended
+#' @seealso \code{\link{readTile}} for reading in a collection of geoTiff's, \code{\link{egTile}} for more information on the raster format
+#'   and some examples on generating derived raster layers, and \code{\link{siteData}} for an example of the output of this function. See
+#'   also \code{\link[maptools]{readShapePoints}} for more on reading-in vector data from a shapefile.
 #'
-mergeTile <- function (dataList, path='', fileName='') {
-  if (path == '') path <- getwd()
-  if (fileName == '') fileName <- tail(strsplit (filename(rasterData[[1]]), '/')[[1]],1)
-  tmp <- raster::stack (c(rasterData[1:length(rasterData)]))
-  return ( raster::brick(tmp, values=T, filename=paste0(path,fileName)) )
+#' @examples
+#' vData <- maptools::readShapePoints (system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+#' siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
+#' @export
+extractPoints <- function (rData, vData, locs, na.omit=T) {
+  spPoints <- sp::SpatialPoints(vData[,c(locs[1],locs[2])], proj4string=rData@crs)
+  pixel <- raster::extract(rData, spPoints)
+  if (is.vector(pixel)) pixel <- as.matrix(pixel)     # If rData is a layer it returns a vector; convert it to a matrix so apply will work
+  valid <- apply (pixel,1,function(x){sum(x!=0, na.rm=T)})
+  valid[!valid & !na.omit] <- 1
+  valid <- valid!=0
+  cbind(as.data.frame(vData)[valid,],pixel[valid,])
 }
 
-#' Computes an output landscape
+##### writeTile #####
+#' Compute and output a landscape
 #'
-#' This function computes and outputs a generated landscape, and optionally the probabilities
-#'   of the winning class and/or every possible class.
+#' This function renders a landscape: this means taking in a set of raster layers (stack or brick) and a classification model, then pushing
+#' all the pixels in the landscape through the model to get outputs (see details), and writing the result to a file. Since many raster.*
+#' objects are too big to (reasonably) hold in memory the landscape is broken into blocks and processed in series.
 #'
-#' Note: outputing all the probabilities can generate quite a large datafile, that is, in the order of a GB or more.
+#' There are several outputs that can be generated by this function. However, since the different packages implement in different ways, and
+#' different limitations are imposed by different model types, the interface and output is not standardized. This function creates as
+#' standard an interface as possible. Due to these inherent differences there are a few things to keep in mind:
+#' \itemize{
+#'   \item Nearest Neighbour algorithms, by their very nature, do not generate class probabilities; they output the nearest class. Hence, the
+#'     option to output probabilities is disabled for the two primitive nearest-neighbour packages (fnn, class). However, the kknn package
+#'     implements a kernel function that transforms nearest-neighbour distance to probability; hence, probability can be output for models
+#'     generated using this package.
+#'   \item Once we get neighbour output this will become another item ???
+#' }
 #'
+#' Given this, options for layers can be one or more of the following:
+#' \itemize{
+#'   \item \sQuote{\code{class}} will output the \sQuote{winning} class, that is, the class with the highest probability of occurrence.
+#'   \item \sQuote{\code{prob}} the probability with which the \sQuote{winning} class won.
+#'   \item \sQuote{\code{threshold}} if we don't trust the classes with \sQuote{winning} probabilities below a certain threshold, then this
+#'   can be selected and classes that don't meet this requirement will be set to 0 in the output map.
+#'   \item \sQuote{\code{all}} output all the probability for all the classes as a multi-layer map. Note that this can be an exceptionally
+#'   large datafile--- as in the order of many gigabytes. Plan accordingly.
+#' }
+#'
+#' @section Warning: Runtimes may be long! On a 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full
+#' rendering of approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB.
+#'
+#' @param inRdata a raster stack (or brick) of the input data; can be loaded using \code{\link{readTile}}
+#' @param model the model to use for predicting output values, often created using \code{\link{generateModels}}. The model class must have a
+#'   predict.model function.
 #' @param outFilename the output filename
-#' @param inImage a raster* of the input data
-#' @param model the model to use for predicting output values. The model class
-#'   must have a predict.model function.
-#' @param layers one of: "class" the chosen class; "prob" the probability of
-#'   this class; "threshold" same as class where probability is greater than
-#'   or equal to threshold (below), 0 otherwise; "all" the probabilies for all
-#'   classes (one layer per possibility). Note: this may be a large dataset!
-#' @param threshold if the "threshold" layer is selected, this needs to be set to the threshold probability (0:1).
-#' @param n.all if the 'all' group is selected in layers, specify how many layers this is going to be.
-#' @param labels.all if the 'all' group is selected in layers, specify labels for these layers.
-#' @param ... other variables to pass to the model predict function.
-#' @return the new raster* object with the output landscape
+#' @param layers (optional) one or more of: "class" the chosen class; "prob" the probability of this class; "threshold" same as class where
+#'   probability is greater than or equal to threshold (below), 0 otherwise; "all" the probabilities for all classes (one layer per class
+#'   type)\ldots see Details.
+#' @param threshold (optional) if the "threshold" layer is selected; this needs to be provided if a threshold output is selected: \eqn{0 < Th < 1}.
+#' @param labels.all (optional) if 'all' is selected, specify labels for these layers; the default label is "prob.<class name>"
+#' @param ... variable(s) to pass to the model prediction function.
+#' @return a new raster.brick object pointing to \file{outFilename} containing the output landscape.
 #'
-writeTile <- function (outFilename, inImage, model, layers=c("class"), threshold=0, n.all=0, labels.all=NULL, ...) {
-  # ??? need to add package prefix to each function call
-
-  # Figure out what type of predict function we need to call. I'd like this to be more elegant, but the nearest neighbour models do not follow the standard predict model so I have to work around it.
-  probs = T                                             # Are the outputs of 'predict' probabilities of class occurance (preferred) or simply the classes themselves (knn only to date)
-  if ("randomForest" %in% class(model)) func <- function (model,data,...) return( predict(model,(function(tmp){ tmp[is.na(tmp)] <- 0; return (tmp)} )(data),type='prob',...) )    # Pass through to predict.randomForest
-  else if ("rfsrc" %in% class(model))   func <- function (model,data,...) return( predict(model,data,importance='none',na.action='na.impute',...)$predicted )  # Pass through and output the probability table from the new data
-  else if ("fnn" %in% class(model)) {
-    if (length(layers) > 1 || !('class' %in% layers)) warning ("Warning: Cannot generate anything other than class output for fnn models. Setting output to 'class' only.")
+#' @seealso \code{\link{writeTiles}} for an automated way to render all models in a model block
+#' @examples
+#' \dontrun{
+#' data ('Output/siteData.dat')
+#'
+#' # Choose a model with specified groupings to load
+#' type <- c('Full','Reduced')[2]                          # Select either full or reduced grouping
+#' load (paste0('Output/',type,' Models/identity.dat'))
+#' load (paste0('Output/',type,' Models/domSpecies.dat'))
+#' load (paste0('Output/',type,' Models/domGroup.dat'))
+#' load (paste0('Output/',type,' Models/MaxGranularity.dat'))
+#' rm (type)
+#'
+#' inRdata <- rData
+#' # Choose a block and crop if desired
+#' IB_1 <- maptools::readShapePoly('Input/Intensive Blocks/IB_1')
+#' IB_2 <- maptools::readShapePoly('Input/Intensive Blocks/IB_2')
+#' IB_3 <- maptools::readShapePoly('Input/Intensive Blocks/IB_3')
+#' IB_4 <- maptools::readShapePoly('Input/Intensive Blocks/IB_4')
+#' IB_5 <- maptools::readShapePoly('Input/Intensive Blocks/IB_5')
+#' IB_6 <- maptools::readShapePoly('Input/Intensive Blocks/IB_6')
+#' inRdata <- crop (inRdata,extent(IB_3))
+#'
+#' # Output a tile--be sure the filename matches the parameters! There is no other check!!
+#' writeTile (inRdata,
+#'            modelRun[['gbm']],
+#'            paste0(gisPath,'Renderings/identity_full_gbm_IB3.tif'),
+#'            layers=c('class','prob'))
+#' writeTiles (egTile,
+#'             modelRun,
+#'             'Renderings/identity_reduced_', gisPath, '_IB3.tif',
+#'             layers=c('class'))
+#' }
+#' @export
+writeTile <- function (inRdata, model, outFilename, layers=c("class"), threshold=0, labels.all=NULL, ...) {
+  # Parameter checks and setup
+  layers <- layers[layers %in% c('class','prob','threshold','all')]
+  if ('threshold'%in%layers && (threshold<=0 || threshold>=1)) stop ("Threshold must be specified between but not equal to 0 and 1.")
+  probs = T                                             # Are the outputs of predict.* probabilities or the actual classes
+  if ( pmatch ('fnn',class(model),nomatch=0) ) {
+    if (length(layers) > 1 || !('class' %in% layers)) warning ("Warning: Cannot generate anything other than class output for fnn.* models. Setting output to 'class' only.")
     layers = 'class'
     probs<-F
-    func <- function (model,data,...) { data[is.na(data)] <- 0; return ( knn (model$train,data[names(model$train)],model$classes,...) ) } # If we have created a fnn class then this is where it will get run
-  }
-  else if ("kknn" %in% class(model))    func <- function (model,data,...) return( kknn(formula=model$terms,train=model$data,test=(function(tmp){ tmp[is.na(tmp)] <- 0; return (tmp)} )(data),k=model$best.parameters[[2]],kernel=model$best.parameters[[1]],na.action=na.pass(),...)$prob)      # Predict for package:kknn
-  else if ("gbm" %in% class(model))     func <- function (model,data,...) return( predict (model,data,n.trees=(function(){ capture.output(tmp <- gbm.perf(model,plot.it=F)); return(tmp); })(),type='response',...)[,,1] ) # The convoluted anonymous inline function is used to supress the print output from gbm.perf...
-  else if ("svm" %in% class(model))     func <- function (model,data,...) return( attr(predict(model,(function(tmp){ tmp[is.na(tmp)] <- 0; return (tmp)} )(data),probability=T,na.action=na.pass,...),'probabilities') )
-  else stop (paste("Error: unable to predict output from model class --",class(model)))
-
-  # Compute the number of output layers and generate names for them.
-  nlayers <- 0
-  labels <- NULL
-  index <- data.frame(class=0, prob=0)              # Location of the class and prob column in the output (better than saving another copy)
-  for (l in layers) {
-    if (l == 'class')      { nlayers <- nlayers + 1; labels <- 'Class'; index$class <- 1 }
-    if (l == 'prob' )      { nlayers <- nlayers + 1; labels <- c(labels,'Prob'); index$prob <- index$class+1 }
-    if (l == 'threshold' ) { nlayers <- nlayers + 1; labels <- c(labels,'Threshold'); if (!(threshold > 0 && threshold < 1)) stop ("Error: threshold probability must be between 0 and 1.") }
-    if (l == 'all'  ) if (n.all == 0) stop ("Error: if 'all' probabilities are to be output n.all must report the number of output classes.")
-    else {
-      nlayers <- nlayers + n.all
-      if (is.null(labels.all)) stop ("Error: if 'all' probabilities are to be output n.all must be set.")
-      else labels <- c(labels,labels.all)
-    }
   }
 
-  # Create raster shell for output
-  if (nlayers == 1) outImage <- raster(inImage)         # Create an empty output rasterLayer...
-  else outImage <- brick(inImage,nl=nlayers)            # ... or if multiple layers have been requested, create an empty output rasterBrick
-  names (outImage) <- labels                            # Set the layer names
-  outImage <- writeStart(outImage, filename=outFilename, format='GTiff', overwrite=TRUE)
-  bS <- blockSize(inImage)                              # Compute the output block sized as the default for the image
+  if (file.access(dirname(outFilename),2)) stop(paste0("Not able to write to the specified folder: ",dirname(outFilename)))
 
-  # Internal functions to simplify code below and reduce duplication
-  computeClass <- function () {
-    index <- as.numeric(apply (prob, 1, which.max))     # Get the position of the (first) maximum element--the winning class--for each cell. The cast to numeric solves the problem that which.max returns a list if there are NAs. This seems to be faster than appending the max column to the dataset and indexing that location... Don't know why?
-    return (as.numeric(colnames(prob))[index])     # Extract the class name from the column headers
-  }
-  computeMaxProb <- function () { return (apply(prob, 1, max)) } # Extract the maximum probability for each cell
+  n.all <- 0
+  if ('all' %in% layers) {
+    n.all <- length(getClasses(model))
+    if (is.null(labels.all)) labels.all <- paste0('prob.',getClasses(model))
+    layers <- layers['all' != layers]
+  } else labels.all <- NULL                             # Don't let bad user input confuse the titles
+  if (length(labels.all) != n.all) stop("Error: number of labels provided does not match the number of output classes.")
 
-  # Inner loop: step through each datablock, run that data through our classifier (model), generate the required layers, and output the results to a datafile.
+  # Create the shell of a raster.brick for holding output
+  outImage <- raster::brick(inRdata, nl=length(layers)+n.all)
+  names (outImage) <- c(layers,labels.all)
+  outImage <- raster::writeStart(outImage, filename=outFilename, format='GTiff', overwrite=T)
+  bS <- raster::blockSize(inRdata)
+
+  # Inner loop: step through each data block, run that data through our classifier (model), generate the required layers, and output the results to a datafile.
+  func <- buildPredict(model)
   pb <- txtProgressBar (0,bS$n,style=3)
   for (i in 1:bS$n) {
-    prob <- func(model, as.data.frame(getValues(inImage,bS$row[i],bS$nrows[i])), ...) # Use the model to predict classes for these cells
-
-    if (!probs) { outData <- as.numeric(levels(prob)[prob]) # If the output is only classes, then we don't have anything interesting to do here
+    prob <- func(model, as.data.frame(raster::getValues(inRdata,bS$row[i],bS$nrows[i])), ...) # Use the model to predict classes for these cells
+    if (!probs) { outData <- factorValues(prob)         # If the output is only classes, then we don't have anything interesting to do here
     } else {
-      outData <- NULL
-      if (match('class',layers,nomatch=0)) outData <- computeClass()
-      if (match('prob',layers,nomatch=0)) outData <- cbind(outData,computeMaxProb())
-      if (match('threshold',layers,nomatch=0)) {          # If requested, extract the threshold class
-        if (index$class==0) class <- computeClass() else class <- outData[,index$class]
-        if (index$prob==0)  maxProb <- computeMaxProb() else maxProb <- outData[,index$prob]
-        class[maxProb < threshold] <- 0                   # Set entries below the threshold to 0
-        outData <- cbind(outData, class)
-      }
-      if (match('all',layers,nomatch=0)) outData <- cbind(outData,prob) # Add all the probabilities if requested
+      outClass <- as.numeric(colnames(prob)[ apply(prob, 1, which.max) ])
+      maxProb <-  apply(prob, 1, max)
+      outData <- list ( (if ('class' %in% layers) outClass),
+                        (if ('prob' %in% layers)  maxProb),
+                        (if ('threshold' %in% layers) { threshClass <- outClass; threshClass[maxProb < threshold] <- 0; threshClass }),
+                        (if (n.all > 0) prob) )
     }
-    writeValues (outImage,outData,bS$row[i])            # Output the data to the file
+    outImage <- raster::writeValues (outImage, matrix(unlist(outData),ncol=raster::nlayers(outImage),byrow=F), bS$row[i])
     setTxtProgressBar (pb,i)
   }
   close (pb)
-  writeStop(outImage)                                   # Stop writing and close the file
-  return (outImage)
+  outImage <- raster::writeStop(outImage)
 }
 
+##### writeTiles #####
 #' Write multiple output tiles
 #'
-#' A utility function to output multiple datafiles in a single folder.
+#' A utility function to output all the possible model renderings model list. It builds the output filename as follows: <path><base><model class><ext>
 #'
-#' The output filename is <path><base><model type><ext>
-#'
-#' @param path the path of the folder
-#' @param base the base part of the filename
-#' @param ext the latter part of the filename
-#' @param models a list of model names
-#' @param layers one or more of 'class':the output classes, 'prob':the probability of that class, 'all': the probability for every possible class
-#' @return the time it took to execute
-#'
-writeTiles <- function (path, base, extension, modelRun, models, layers=c('class')) {
-  #??? need to deal with threshold properly!!
-  #??? eliminate require calls
+#' Sometimes it is desirable to render all the models in a block (a list of models), for example for comparison---this function performs
+#' that task. It is a wrapper that loops through all models and calls \code{\link{writeTile}} with a generated filename to which to
+#' render.
 
-  for (fType in models) {
-    if (fType == 'rF')    { model <- rF <- modelRun[['rF']];       n.all = length(rF$classes);                labels.all = paste0('Prob.',rF$classes);                require (randomForest) }
-    if (fType == 'rFSRC') { model <- rFSRC <- modelRun[['rFSRC']]; n.all = length(levels(rFSRC$class));       labels.all = paste0('Prob.',levels(rFSRC$class));       require (randomForestSRC) }
-    if (fType == 'fnn')   { model <- fnn <- modelRun[['fnn']];     n.all = 0;                                 labels.all = NULL;                                      require (FNN) }
-    if (fType == 'kknn')  { model <- kknn <- modelRun[['kknn']];   n.all = length(levels(kknn$data$Ecotype)); labels.all = paste0('Prob.',levels(kknn$data$Ecotype)); require (kknn) }
-    if (fType == 'gbm')   { model <- gbm <- modelRun[['gbm']];     n.all = length(gbm$classes);               labels.all = paste0('Prob.',gbm$classes);               require (gbm) }
-    if (fType == 'svm')   { model <- svm <- modelRun[['svm']];     n.all = length(svm$levels);                labels.all = paste0('Prob.',svm$levels);                require (e1071) }
-    print (fName <- paste0(path, base, fType, extension))
-    return ( system.time( writeTile(outFilename=fName, inImage=inImage, model=model, layers, n.all=n.all, labels.all=labels.all) ) )#,threshold=0.5) )
+#' @section Warning:
+#' Runtimes may be long! On an 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full rendering of a
+#' single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB... and this is only for a
+#' single tile. It is recommended that writeTiles be reserved for outputing comparison tiles of a smaller size, or subsampled data.
+#'
+#' @param inRdata is the image from which to generate the rendering, which can be read in using \code{\link{readTile}}
+#' @param models a list of model names, the standard output from \code{\link{generateModels}}
+#' @param base the base portion of the filename
+#' @param path (optional) the path of the folder; defaults to './' the current directory
+#' @param extension (optional) the latter part of the filename; defaults to '.tif'
+#' @param echo (optional) should the function report its progress; defaults to TRUE
+#' @param ... other parameter(s) to pass on to \code{\link{writeTile}}, e.g. threshold, labels, et.c
+#' @return invisibly returns the time it took each model output to execute
+#'
+#' @seealso \code{\link{writeTile}} for the engine that does the rendering
+#' @examples
+#' # See the examples at writeTile
+#' @export
+writeTiles <- function (inRdata, models, base, path='./', extension='.tif', echo=T, ...) {
+  for (m in models) {
+    fName <- paste0(path, base, class(m)[[1]], extension)
+    if (echo) print (paste0('Writing: ',fName,' ...'))
+    invisible(system.time( writeTile(inRdata, m, fName,...) ))
   }
 }

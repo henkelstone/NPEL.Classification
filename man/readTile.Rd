@@ -2,25 +2,39 @@
 % Please edit documentation in R/rwTile.R
 \name{readTile}
 \alias{readTile}
-\title{Read a collection of layers}
+\title{Read a collection of tif layers from a folder}
 \usage{
-readTile(rasterPath, rasterName, layers, labels = NULL, NAval = NULL)
+readTile(rasterPath, layers, labels = NULL, NAval = NULL)
 }
 \arguments{
 \item{rasterPath}{path to the raster file}
 
-\item{rasterName}{name of the file}
+\item{layers}{a character list of layer names to read. The filename used will be '<layer[i]>.tif'}
 
-\item{layers}{a character list of layers to read. The filename used will be 'rasterName_layer.tif'}
+\item{labels}{(optional) a list of names for the columns of the final raster; will use layer names if this is not specified.}
 
-\item{labels}{(optional) a list of names for the columns of the final raster. Will attempt to use the layer names if it appears there is only one layer per file.}
-
-\item{NAval}{the value to be interpreted as NA; passed to raster::NAvalue}
+\item{NAval}{(optional) the value to be interpreted as NA; passed to raster::NAvalue}
 }
 \value{
 a raster.stack of the objects in the folder
 }
 \description{
-The function reads a collection of geotiffs and creates a single raster.stack object
+The function reads a collection of geotiffs from a folder and creates a single raster.stack object. It is used to streamline the input of
+many layers at once since Rgdal does not, at the time of this writing (15.Feb.2016) allow the direct processing of raster gdb files. Each
+layer should be in it's own geoTiff, although multiple bands within a geoTiff are allowed. Each file should be named with the layer name
+(see parameters). Optional labels can be supplied, but if no, need to be supplied for all layers.
+}
+\examples{
+\dontrun{
+# Read egTile from the provided geoTiff's; gisPath must point to package installion folder.
+path <- system.file("extdata", "egTile", package = "testdat")
+rData <- readTile(gisPath, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+
+# Set the aspect layer to NA wherever slope is 0
+rData$asp <- calc (rData$asp,fun=function(x){ x[x == -1] <- NA; x })
+}
+}
+\seealso{
+See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
 }
 

@@ -17,7 +17,7 @@ plotTile(gp, layers, discrete, colours, labels = NULL, ...)
 
 \item{labels}{if desired, specify the names of the labels for each class}
 
-\item{...}{}
+\item{...}{other parameters to pass ???}
 }
 \value{
 the ggplot object with additional aes and scale

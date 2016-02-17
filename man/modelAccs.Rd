@@ -2,40 +2,55 @@
 % Please edit documentation in R/Models.R
 \name{modelAccs}
 \alias{modelAccs}
-\title{Generate accuracy statistics for a list of models}
+\title{Generate accuracy statistics and variable importance for a list of models}
 \usage{
-modelAccs(models, classNames = NULL)
+modelAccs(models, classNames = NULL, echo = T)
 }
 \arguments{
-\item{models}{a list of model objects on which to find error statistics}
+\item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate}
+
+\item{classNames}{(optional) class names to attach to the tables}
+
+\item{echo}{(optional) should the function print out it's progress}
 }
 \value{
-a list of errors/accuracies: list(confMatrix, userAcc, prodAcc, kappa, VIMP, VIMPoverall)
+A named list of accuracy and VIMP data: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy, \code{prodAcc} =
+  producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa, \code{VIMP} = VIMP matrices, \code{VIMPoverall} =
+  overall VIMP
 }
 \description{
-Given a colleciton of models, this function computes several accuracy and VIMP metrics. See details for a description of each structure returned.
+Given a block (list) of models, this function runs \code{\link{classAcc}} and the \code{\link{npelVIMP}} metric on each. See details for a
+description of how the data is encapsulated for return.
 }
 \details{
-The function returns a list of different accuracy and VIMP datastructures
-\describe{
-  \item{\sQuote{confMatrix}}{a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame}
-  \item{\sQuote{userAcc}}{a data.frame in which each column represents the user acceracy for a given model. Rows are the accuracies for
-     that input class. The final row is the overall user accuracy for that model technique. User accuracy, also called commission error, is the
-     the percent of pixels on the map that are what they are predicted to be; that is, the number of correctly identified sites over the number
-     that the model predicts to be in that class.}
-  \item{\sQuote{prodAcc}}{a data.frame in which each column represents the producer acceracy for a given model. Rows are the accuracies for
-     that input class. The final row is the overall producer accuracy for that model technique (the same as for userAcc). Producer accuracy, also called omission error,
-     is the the percent of pixels on the map that are labelled correctly; that is, the number of correctly identified sites over the number
-     that the actually are that class.}
-  \item{\sQuote{kappa}}{a vector of kappa values for each model type. The kappa-statistic is a measure of how much better this model predicts output
-     classes than would be done by chance alone. It is computed as the ratio of the oberved accuracy less that expected by chance, over 1-(chance
-     probabilities). K = (observed accuracy – chance agreement) / (1 – chance agreement). ??? Add the formula as a tex formula... }
-  \item{\sQuote{VIMP}}{a named list of variable importance (VIMP) matrices. Each matrix is a data.frame in which columns are different classes
-     and rows are input variables used in the model. Entries in the table are the variable importance of an input variable on particular class.}
-  \item{\sQuote{VIMPoverall}}{a data.frame showing the overall variable importance (VIMP) for a given model. Columns are different models and entries
-     in the table are the standardized VIMP for an imput variable on that model. Values have been standardized by column so they are (somewhat) comparable
-     as the algorithm by which VIMP is computed varies by model--hence the largest value will be 1 in every column. This makes the columns approximately
-     comparable, however, values should be taken with a grain of salt, and perhaps rank order is the most robust comparison.}
+The function returns a named list of the various accuracy and variable importance metrics:
+\itemize{
+  \item \code{Accuracies} contains the complete names list returned by \code{\link{classAcc}}; see the help on that method for more
+    information on that data structure.
+  \item \code{VIMP} a named list containing the variable importance matrices (VIMP) for each included model. Each entry in the list is a
+    data frame in which columns are different classes and rows are different input variables; specific entries represent the variable
+    importance of a given input variable on a particular class.
+  \item \code{VIMPoverall} a data.frame showing the overall variable importance (VIMP) for a given model.
+
+Columns are different models and entries in the table are the standardized VIMP for an input variable on that model. Values have been
+  standardized by column so they are (somewhat) comparable as the algorithm by which VIMP is computed varies by model--hence the largest
+  value will be 1 in every column. This makes the columns approximately comparable, however, values should be taken with a grain of salt,
+  and perhaps rank order is the most robust comparison.
 }
+}
+\note{
+See the details section of \code{\link{npelVIMP}} for a discussion of the limitations of our VIMP metric.
+}
+\examples{
+data ('siteData')
+modelRun <- generateModels (data = siteData,
+                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+                            y = 'ecoType',
+                            grouping = ecoGroup[['domSpecies','transform']])
+mE <- modelAccs (modelRun,ecoGroup[['identity','labels']])
+}
+\seealso{
+\code{\link{classAcc}} for more on class level accuracies, and \code{\link{npelVIMP}} for more on how that metric is computed and it's limitations.
 }
 

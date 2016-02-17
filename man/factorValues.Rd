@@ -6,10 +6,16 @@
 \usage{
 factorValues(x)
 }
+\arguments{
+\item{x}{the factor from which to extract (numeric) values}
+}
+\value{
+the (numeric) values stored in the factor
+}
 \description{
 This function retrieves the *values* within a factor object. There is a subtle but serious gotcha when using factors
 that is outlined in the help for factor() under the Warning section. Notably, then using factors, what is returned
-is the *indicies* of the factor, not the values stored in the factor. This is fairly easy to catch when factors are
+is the *indices* of the factor, not the values stored in the factor. This is fairly easy to catch when factors are
 type character, but can cause serious bugs when they are numeric. The purpose of this function is to provide an easy
 way to return the values stored within a factor
 }

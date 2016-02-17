@@ -7,19 +7,55 @@
 classAcc(pred, valid, digits = 3, classNames = NULL)
 }
 \arguments{
-\item{digits}{(optional) the number of digits to output for the error}
+\item{pred}{the predicted classes.}
 
-\item{x}{the prediction classes}
+\item{valid}{the validation classes.}
 
-\item{y}{the validation classes}
+\item{digits}{(optional) the number of digits to output for the error; defaults to 3.}
+
+\item{classNames}{(optional) a character vector of class names (strings). It is required because in the grouped models, there are no
+meaningful classnames integral to the model. What is provided here is subsetted to include only the levels that are actually present in
+the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.}
 }
 \value{
-the error data as a five element list: confusion matrix, user accuracy, producer accuracy, overall accuracy, kappa
+Accuracy data as a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
+  \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
 }
 \description{
-Generates basic error statistics for a classification model
+A common question is what is the accuracy of the model we have created; this function aims to provide information towards answering that
+question. There are a number of different metrics used, this one computes the out-of-bag metrics (OOB): the confusion matrix, the user
+accuracy, the producer accuracy, the overall OOB accuracy, and the Kappa statistic; see details below.
 }
 \details{
-Create some notes here on how each accuracy rate is computed and it's significance???
+The metrics returned from classAcc are:
+\itemize{
+  \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
+    predicted values as rows and actual values as columns.
+  \item \code{userAcc} a data frame in which each column represents the user accuracy for a given model, and rows are the accuracies for
+    that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
+    is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
+    the number sites that the model predicted to be in that class.
+  \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies for
+     that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called omission error,
+     is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the number that are
+     actually of that class.
+  \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
+    predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
+    chance, standardized by unity less the probability by chance alone.
+     \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
+}
+}
+\examples{
+data ('siteData')
+modelRun <- generateModels (data = siteData,
+                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+                            y = 'ecoType',
+                            grouping = ecoGroup[['domSpecies','transform']])
+model <- modelRun$rF
+cat(search())
+mAcc <- classAcc (getFitted(model),getData(model)$ecoType,
+                  classNames=ecoGroup[['identity','labels']])
+str (mAcc,1)
 }
 

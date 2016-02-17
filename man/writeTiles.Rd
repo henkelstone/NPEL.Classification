@@ -4,26 +4,45 @@
 \alias{writeTiles}
 \title{Write multiple output tiles}
 \usage{
-writeTiles(path, base, extension, modelRun, models, layers = c("class"))
+writeTiles(inRdata, models, base, path = "./", extension = ".tif",
+  echo = T, ...)
 }
 \arguments{
-\item{path}{the path of the folder}
+\item{inRdata}{is the image from which to generate the rendering, which can be read in using \code{\link{readTile}}}
 
-\item{base}{the base part of the filename}
+\item{models}{a list of model names, the standard output from \code{\link{generateModels}}}
 
-\item{models}{a list of model names}
+\item{base}{the base portion of the filename}
 
-\item{layers}{one or more of 'class':the output classes, 'prob':the probability of that class, 'all': the probability for every possible class}
+\item{path}{(optional) the path of the folder; defaults to './' the current directory}
 
-\item{ext}{the latter part of the filename}
+\item{extension}{(optional) the latter part of the filename; defaults to '.tif'}
+
+\item{echo}{(optional) should the function report its progress; defaults to TRUE}
+
+\item{...}{other parameter(s) to pass on to \code{\link{writeTile}}, e.g. threshold, labels, et.c}
 }
 \value{
-the time it took to execute
+invisibly returns the time it took each model output to execute
 }
 \description{
-A utility function to output multiple datafiles in a single folder.
+A utility function to output all the possible model renderings model list. It builds the output filename as follows: <path><base><model class><ext>
 }
 \details{
-The output filename is <path><base><model type><ext>
+Sometimes it is desirable to render all the models in a block (a list of models), for example for comparison---this function performs
+that task. It is a wrapper that loops through all models and calls \code{\link{writeTile}} with a generated filename to which to
+render.
+}
+\section{Warning}{
+
+Runtimes may be long! On an 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full rendering of a
+single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB... and this is only for a
+single tile. It is recommended that writeTiles be reserved for outputing comparison tiles of a smaller size, or subsampled data.
+}
+\examples{
+# See the examples at writeTile
+}
+\seealso{
+\code{\link{writeTile}} for the engine that does the rendering
 }
 

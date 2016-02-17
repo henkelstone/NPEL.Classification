@@ -2,37 +2,101 @@
 % Please edit documentation in R/Models.R
 \name{generateModels}
 \alias{generateModels}
-\title{A utility function to generate various classification models from a single input dataset}
+\title{Generate Classification Models}
 \usage{
-generateModels(data, modelTypes, x = NULL, y = NULL, grouping = NULL,
-  echo = T, rf.args = NULL, nn.args = NULL, gbm.args = NULL,
-  svm.args = NULL)
+generateModels(data, modelTypes, fx = NULL, x = NULL, y = NULL,
+  grouping = NULL, echo = T, rf.args = NULL, nn.args = NULL,
+  gbm.args = NULL)
 }
 \arguments{
-\item{x}{(optional): vector names of 'predictor' variables to use. Defaults to all columns less the y varible}
+\item{data}{the input data frame, see \code{\link{siteData}} for more information and an example dataset.}
 
-\item{y}{(optional): the name of the column of the 'response' variable. Defaults to first column.}
+\item{modelTypes}{a character vector of model types to generate; one or more of c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm').}
 
-\item{grouping}{(optional): a transformation vector for input classes. Defaults to identity.}
+\item{fx}{(optional) a formula object specifying the variable relationships; will be generated from x and y if unspecified.}
 
-\item{echo}{(optional): should the function report it's progress?}
+\item{x}{(optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; required if fx is not provided.}
 
-\item{rf.args}{(optional): arguments to pass to random forest type models}
+\item{y}{(optional) the name of the column of the 'response' variable; defaults to first column; required if fx is not provided.}
 
-\item{nn.args}{(optional): arguments to pass to nearest neighbour type models}
+\item{grouping}{(optional) a transformation vector for input classes; defaults to \sQuote{\code{identity}}. See \code{\link{ecoGroup}} for more information about this technique.}
 
-\item{gbm.args}{(optional): arguments to pass to gbm}
+\item{echo}{(optional) should the function report it's progress? Defaults to TRUE, but useful for automation.}
 
-\item{svm.args}{(optional): arguments to pass to svm}
+\item{rf.args}{(optional) arguments to pass to random forest type models; defaults will be generated for unspecified values}
 
-\item{data:}{the input dataframe}
+\item{nn.args}{(optional) arguments to pass to nearest neighbour type models; defaults will be generated for unspecified values}
 
-\item{modelTypes:}{a vector of model types to generate. One or more of c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm','svm')}
+\item{gbm.args}{(optional) arguments to pass to gbm; defaults will be generated for unspecified values}
 }
 \value{
-A named list of models
+A named list of models with attributes specifying the data, the function used, and the class.
 }
 \description{
-A utility function to generate various classification models from a single input dataset
+This is a utility function to build a collection of classification models from a single input dataset.
+}
+\details{
+In the most basic sense, this function is a loop wrapping the code to generate a model. However, it also standardizes the inputs and
+generates meaningful default arguments for the different packages. It is possible to pass the function either a formula object, or a list
+of x and y names from which to generate the models---it will compute whichever is not specified.
+
+The various arguments are the most complex part of this function call. Reasonably meaningful default values are generated within the
+function, but the user always has the option to override them to customize the models. In most cases it is likely there will be at least
+a few arguments that will need to be provided. The argument lists are divided up by model \emph{type}, not package:
+\itemize{
+  \item Random Forest---currently: \pkg{\link[randomForest]{randomForest}}, and \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}.
+  \itemize{
+    \item \code{mtry} the two different implementation of random forests, while they specify that they compute the number of variables to use at
+      each node split the same way, actually arrive at different answers internally---that is, given the defaults, they do not generate the
+      same output. By specifying it here, using the same formula they specify as the default, it is possible ensure that they are doing the
+      same thing; defaults to \code{floor(sqrt(length(x)))}.
+    \item \code{importance} one of the benefits of random forests is that it is relatively easy to compute a variable importance metric (VIMP).
+      While only \pkg{randomForestSRC} currently allows multiple options for methods, these options can be specified here (including
+      \sQuote{\code{none}} and the arguments for \pkg{randomForest} will be generated automatically; defaults to \sQuote{\code{permute}}
+    \item \code{na.action} what to do when na values are encountered; defaults to \sQuote{\code{na.omit}}.
+    \item \code{proximity} should proximity information be computed; see packages for more help.
+  }
+  \item Nearest Neighbour---currently: \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, and \pkg{\link[kknn:train.kknn]{kknn}}.
+  \itemize{
+    \item \code{k} the number of neighbours considered (for FNN and class); defaults to 3.
+    \item \code{kmax} the kknn package optimized the number of neighbours considered---this specified the maximum number of neighbours for that
+      optimization; defaults to 7, the default provided in kknn.
+    \item \code{kernel} the kknn package allows the selection of different kernel functions as to how to weight the distance metric---this
+     specifies which to use; defaults to \sQuote{\code{rectangular}}. It is possible to use more than one and it will optimize over
+     them all.
+    \item \code{scale} should we scale the data before running the model fit; defaults to TRUE.
+  }
+  \item GBM---currently: \pkg{\link[gbm]{gbm}}
+  \itemize{
+    \item \code{distribution} which distribution to assume for the data. Classification data defaults to \sQuote{\code{in the package}} and this
+      package follows that.
+    \item \code{n.trees} the maximum number of trees to grow. Note that this is \emph{not} the optimal number of trees! This is an overfit model; use
+      \code{\link[gbm]{gbm.perf}} to find the optimal model; defaults to 1000.
+    \item \code{keep.data} should the data be embedded in the model. Since other methods in this package need the data, default is TRUE; this also
+      prevents the data from potentially being stored twice.
+  }
+}
+}
+\examples{
+data ('siteData')
+modelRun <- generateModels (data = siteData,
+                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+                            y = 'ecoType',
+                            grouping = ecoGroup[['domSpecies','transform']],
+                            gbm.args = list (interaction.depth=7, shrinkage=0.005, cv.folds=0) )
+}
+\seealso{
+See the package help \pkg{\link{NPEL.Classification}} for an overview of the analysis process.
+
+For reading-in model data: \code{\link{readTile}}, \code{\link[maptools]{readShapePoints}}, and \code{\link{extractPoints}}; or the
+  \pkg{\link[raster]{raster}} package for reading-in raster files directly.
+
+For examples on computing derived raster variables, e.g. NDVI, slope, etc. see the example code in \code{\link{egTile}}
+
+For examples on what to do with the generated models see: \code{\link{modelAccs}}, \code{\link{writeTile}}, and \code{\link{plotTile}}
+
+Also see any of the currently supported packages, currently: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
+  \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
 }
 
