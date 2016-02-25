@@ -64,7 +64,7 @@
 #'   \item \code{\link{ecoGroup}} -- an example transformation 'function' including labels and suggested colours
 #' }
 #'
-#' @section Object Oriented Utilities:
+#' @section Utilitie functions:
 #' There are several other common tasks that this package aims to streamline:
 #' \itemize{
 #' \item A few factor variable utilities
@@ -72,9 +72,11 @@
 #'     \item \code{\link{sortLevels}} -- sort the levels of a factor so they are in order
 #'     \item \code{\link{trimLevels}} -- trim the levels of a factor so only levels that appear in the variable are present
 #'     \item \code{\link{mergeLevels}} -- merge the levels of two factor variables
-#'     \item \code{\link{factorValues}} -- As outlined in the warnings section of the help file for factors
+#'     \item \code{\link{factorValues}} -- as outlined in the warnings section of the help file for factors
 #'       (\code{?factor}) there is a common gotcha when dealing with factors: converting numerical factors using
 #'       \code{as.numeric} returns the factor \emph{indices} not the values as expected. \code{factor}
+#'     \item \code{\link{rad2deg}} -- convert radians to degrees; for slope, aspect, hillshade etc.
+#'     \item \code{\link{deg2rad}} -- convert degrees to radians; for slope, aspect, hillshade etc.
 #'   }
 #' \item Object Oriented access to model internals
 #'   The various modelling packages that are used by \pkg{NPEL.Classification} all have different ways of storing their
@@ -305,6 +307,7 @@ NULL
 #' library (NPEL.Classification)
 #' data(egTile)
 #' summary (egTile)
+#' gisPath = './'
 #'
 #' # Create meaningful aliases for the Landsat layer names
 #' blue <- egTile$'base.2'
@@ -325,12 +328,37 @@ NULL
 #' brtns <-  0.2043*blue + 0.4158*green + 0.5524*red + 0.5741*NIR + 0.3124*SWIR1 + 0.2303*SWIR2
 #' wetns <-  0.0315*blue + 0.2021*green + 0.3102*red + 0.1594*NIR - 0.6806*SWIR1 - 0.6109*SWIR2
 #'
-#' # Generate DEM derived data
-#' slope <-  raster::terrain(egTile$dem, opt='slope', unit='degrees')
-#' aspect <- raster::terrain(egTile$dem, opt='aspect', unit='degrees')
-#' TPI <-    raster::terrain(egTile$dem, opt='TPI')
-#' TRI <-    raster::terrain(egTile$dem, opt='TRI')
-#' rough <-  raster::terrain(egTile$dem, opt='roughness')
-#' flow <-   raster::terrain(egTile$dem, opt='flowdir')
-#' hsd <-    raster::hillShade(slope, aspect, angle=53, direction=205)
+#' LandSAT <- stack (ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
+#' names (LandSAT) <- c('ndvi','ndwi','evi','mavi','nred','ngrn','grnns','brtns','wetns')
+#' writeRaster (LandSAT,filename=paste0(gisPath,"LandSAT.gri"), overwrite=T)
+#' rm (blue, green, red, NIR, SWIR1, SWIR2, ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
+#'
+#' # Generate DEM derived data using built in functions
+#' library (raster)
+#' slope <-  terrain(egTile$dem, opt='slope', unit='degrees')
+#' aspect <- terrain(egTile$dem, opt='aspect', unit='degrees')
+#'   aspect[slope < 1e-10] <- NA
+#'   aspect[abs(aspect-360) < 1e-10] <- 0
+#' TPI <-    terrain(egTile$dem, opt='TPI')
+#' TRI <-    terrain(egTile$dem, opt='TRI')
+#' rough <-  terrain(egTile$dem, opt='roughness')
+#' flow <-   terrain(egTile$dem, opt='flowdir')
+#' hsd <-    hillShade(deg2rad(slope), deg2rad(aspect), angle=53.3, direction=199.8, normalize=T)
+#'
+#' # Generate DEM derived data manually to match ArcGIS output
+#' RI <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3),
+#'             fun=function(x){sqrt( sum((x-x[5])^2,na.rm=T)/8 )}, pad=TRUE, padValue=NA) )
+#' # SRR <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3),                           # Cute but slow
+#'             fun=function(x){ m <- min(x); (mean(x)-m)/(max(x)-m) }, pad=TRUE, padValue=NA)
+#' eMin <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3), fun=min, pad=TRUE, padValue=NA)
+#' eMax <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3), fun=max, pad=TRUE, padValue=NA)
+#' eAvg <- focal(rData$dem, w=matrix(1/9, nrow=3, ncol=3), pad=TRUE, padValue=NA)
+#' SRR <- (eAvg-eMin) / (eMax-eMin)
+#' SRR[abs(eMax-eMin) < 0.0001] <- NA
+#' rm (eMin, eMax, eAvg)
+#'
+#' DEM <- stack (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
+#' names (DEM) <- c('slp','asp','TPI','TRI','rough','srr','ri','flow','hsd')
+#' writeRaster (DEM,filename=paste0(gisPath,"DEM.gri"), overwrite=T)
+#' rm (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
 "egTile"

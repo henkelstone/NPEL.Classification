@@ -16,18 +16,29 @@ models <- generateModels (
   gbm.args = list (interaction.depth=7, shrinkage=0.005, cv.folds=0) )
 
 # Simply check and see that they all run without an error
-for (i in models) {
-  expect_true( !is.null(classAcc(getFitted(i), getData(i)[,'ecoType'])) )
-}
+test_that("classAcc", {
+  for (i in models) {
+    expect_true( !is.null(classAcc(getFitted(i), getData(i)[,'ecoType'])) )
+  }
+})
 
-for (i in models) {
-  expect_true( !is.null(npelVIMP(i)) )
-}
+test_that("npelVIMP", {
+  for (i in models) {
+    expect_true( !is.null(runA <- npelVIMP(i,calc=F)) )
+    expect_true( !is.null(runB <- npelVIMP(i,calc=T)) )
+    expect_false( identical(runA,runB) )
+  }
+})
 
-for (i in models) {
-  expect_true( !is.null(npelVIF(getFormula(i),getData(i))) )
-}
+test_that("npelVIF", {
+  for (i in models) {
+    expect_true( !is.null(npelVIF(getFormula(i),getData(i))) )
+  }
+})
 
-cat('\n')
-expect_true( !is.null(modelAccs(models)) )
-
+test_that("modelAccs", {
+  cat('\n')
+  expect_true( !is.null(runA <- modelAccs(models,calc=F)) )
+  expect_true( !is.null(runB <- modelAccs(models,calc=T)) )
+  expect_false( identical(runA,runB) )
+})

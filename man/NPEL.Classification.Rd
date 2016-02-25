@@ -72,7 +72,7 @@ A small selection of data has been included in the package for didactic and test
 }
 }
 
-\section{Object Oriented Utilities}{
+\section{Utilitie functions}{
 
 There are several other common tasks that this package aims to streamline:
 \itemize{
@@ -81,9 +81,11 @@ There are several other common tasks that this package aims to streamline:
     \item \code{\link{sortLevels}} -- sort the levels of a factor so they are in order
     \item \code{\link{trimLevels}} -- trim the levels of a factor so only levels that appear in the variable are present
     \item \code{\link{mergeLevels}} -- merge the levels of two factor variables
-    \item \code{\link{factorValues}} -- As outlined in the warnings section of the help file for factors
+    \item \code{\link{factorValues}} -- as outlined in the warnings section of the help file for factors
       (\code{?factor}) there is a common gotcha when dealing with factors: converting numerical factors using
       \code{as.numeric} returns the factor \emph{indices} not the values as expected. \code{factor}
+    \item \code{\link{rad2deg}} -- convert radians to degrees; for slope, aspect, hillshade etc.
+    \item \code{\link{deg2rad}} -- convert degrees to radians; for slope, aspect, hillshade etc.
   }
 \item Object Oriented access to model internals
   The various modelling packages that are used by \pkg{NPEL.Classification} all have different ways of storing their

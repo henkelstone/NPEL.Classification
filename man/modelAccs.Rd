@@ -4,14 +4,16 @@
 \alias{modelAccs}
 \title{Generate accuracy statistics and variable importance for a list of models}
 \usage{
-modelAccs(models, classNames = NULL, echo = T)
+modelAccs(models, classNames = NULL, calc = F, echo = T)
 }
 \arguments{
 \item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate}
 
 \item{classNames}{(optional) class names to attach to the tables}
 
-\item{echo}{(optional) should the function print out it's progress}
+\item{calc}{(optional) passed on to \code{\link{npelVIMP}}, defaults to false}
+
+\item{echo}{(optional) should the function print out it's progress, defaults to false}
 }
 \value{
 A named list of accuracy and VIMP data: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy, \code{prodAcc} =

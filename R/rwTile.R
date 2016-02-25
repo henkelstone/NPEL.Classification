@@ -43,7 +43,7 @@ readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
 #' build combined remote-sensed and field data that can be input into a classification model.
 #'
 #' @param rData the raster data as a raster.* object; can be read in using \code{\link{readTile}}
-#' @param vData the point data as a SpatialPointsDataFrame
+#' @param vData the point data as a data frame or a SpatialPointsDataFrame, i.e. read in with maptools::readShapePoints
 #' @param locs the columns which contain the locations\ldots c(easting, northing)
 #' @param na.omit (optional) remove NA points from the dataset? defaults to TRUE
 #' @return a data frame with the combined data: the original vector data with the extracted raster data columns appended

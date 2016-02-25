@@ -32,10 +32,10 @@ test_that("readTile", {
 })
 
 vData <- maptools::readShapePoints ('../../data-raw/Plots/Plots')
-egTile <- system.file("extdata", "egTile", package = "NPEL.Classification")
-test_that("readTile", {
-  skip('testing skip')
+data (egTile)
+test_that("extractPoints", {
   expect_true(!is.null( extractPoints(egTile, vData, c('EASTING','NORTHING')) ))
   expect_true(!is.null( extractPoints(egTile[[1]], vData, c('EASTING','NORTHING')) ))              # Should work on a layer
   expect_true(!is.null( extractPoints(raster::brick(egTile), vData, c('EASTING','NORTHING')) ))    # Should work on a brick
+  expect_true(!is.null( extractPoints(egTile, as.data.frame(vData), c('EASTING','NORTHING')) ))    # Should work with points in a data frame
 })

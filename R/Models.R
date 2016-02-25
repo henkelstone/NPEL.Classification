@@ -391,7 +391,8 @@ npelVIF <- function (fx, data) {
 #'
 #' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate
 #' @param classNames (optional) class names to attach to the tables
-#' @param echo (optional) should the function print out it's progress
+#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false
+#' @param echo (optional) should the function print out it's progress, defaults to false
 #' @return A named list of accuracy and VIMP data: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy, \code{prodAcc} =
 #'   producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa, \code{VIMP} = VIMP matrices, \code{VIMPoverall} =
 #'   overall VIMP
@@ -406,7 +407,7 @@ npelVIF <- function (fx, data) {
 #'                             grouping = ecoGroup[['domSpecies','transform']])
 #' mE <- modelAccs (modelRun,ecoGroup[['identity','labels']])
 #' @export
-modelAccs <- function (models, classNames=NULL, echo=T) {
+modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
   y <- as.character(getFormula(models[[1]])[[2]])
   if (class(models) != 'list') models <- list (models)  # In case it is only a single model, wrap it in a list
   if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("Classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
@@ -422,8 +423,8 @@ modelAccs <- function (models, classNames=NULL, echo=T) {
     prodAcc <- as.data.frame(cbind(prodAcc, c(tmp$prodAcc,overall=tmp$overallAcc)))
     kappa <- c(kappa,tmp$kappa)
 
-    tmp <- npelVIMP (i,calc=F,echo=echo)
-    cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i)) 1 else 0 ))
+    tmp <- npelVIMP (i,calc=calc,echo=echo)
+    cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !calc) 1 else 0 ))
 
     classN <- classNames
     if (length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("Classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
