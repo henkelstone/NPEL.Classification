@@ -46,8 +46,8 @@ plotTile <- function(gp, layers, discrete, colours, labels=NULL,...){
   # saving the R database on exit without being sure you have time for this file to save/load.
 
   if (!requireNamespace('ggplot2')) stop("ggplot2 package required for plotting")
-  if (discrete) { if (is.null(colours)) stop ("Error: if discrete is specified, so must be colours") }
-  else          { if (is.null(colours) || !sum(length(colours) == c(2,3))) stop("Error: either 2 or 3 colours need to be specified for continuous gradient scales") }
+  if (discrete) { if (is.null(colours)) stop ("plotTile: if discrete is specified, so must be colours") }
+  else          { if (is.null(colours) || !sum(length(colours) == c(2,3))) stop("plotTile: either 2 or 3 colours need to be specified for continuous gradient scales") }
 
   gp <- ggplot2::`%+%`(gp, subset(gp$data,gp$data$type %in% layers))   # Subset the data. Necessary to do it this way so we don't have to specify the subset to every item, i.e. scale, geom, facet, etc.
   if (length(list(...))) gp <- gp + ...                   # Add any extra parameters the user may have supplied

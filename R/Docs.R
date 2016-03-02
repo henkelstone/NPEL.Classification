@@ -93,7 +93,8 @@
 #'     \item \code{\link{getVIMP}} -- variable importance data; generated for some model types.
 #'     \item \code{\link{buildModel}} -- a single function for building a model; see the documentation for more
 #'       information on how the desired model type is passed to the function.
-#'     \item \code{\link{buildPredict}} -- create a function that can be used to predict new values for this model.
+#'     \item \code{\link{buildPredict}} -- build a function that can be used to predict new values for this model; standardizes the
+#'       interface across all model types.
 #'   }
 #' }
 #'
@@ -330,7 +331,7 @@ NULL
 #'
 #' LandSAT <- stack (ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
 #' names (LandSAT) <- c('ndvi','ndwi','evi','mavi','nred','ngrn','grnns','brtns','wetns')
-#' writeRaster (LandSAT,filename=paste0(gisPath,"LandSAT.gri"), overwrite=T)
+#' writeRaster (LandSAT,filename=paste0(gisPath,'LandSAT.gri'), overwrite=T)
 #' rm (blue, green, red, NIR, SWIR1, SWIR2, ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
 #'
 #' # Generate DEM derived data using built in functions
@@ -359,6 +360,6 @@ NULL
 #'
 #' DEM <- stack (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
 #' names (DEM) <- c('slp','asp','TPI','TRI','rough','srr','ri','flow','hsd')
-#' writeRaster (DEM,filename=paste0(gisPath,"DEM.gri"), overwrite=T)
+#' writeRaster (DEM,filename=paste0(gisPath,'DEM.gri'), overwrite=T)
 #' rm (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
 "egTile"

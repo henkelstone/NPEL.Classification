@@ -51,3 +51,39 @@ deg2rad <- function (x) { x*pi/180 }
 #' @export
 rad2deg <- function (x) { x*180/pi }
 
+##### prob2class #####
+#' Convert a matrix of probabilities to a vector or classes
+#'
+#' Some model types and packages, when asked to predict new values, return probabilite that a given class will occur.
+#' This function converts this format into a vector of classes (type factor).
+#'
+#' @param prob a matrix of probabilities with each column representing a different class.
+#' @param classes (optional) the classes represented by \code{prob}. Must match the number of columns in \code{prob}.
+#' @param threshold (optional) if the probability is less than this value, output 0 for the class as we don't have
+#'   confidence in the result.
+#'
+#' @return A factor variable containing the most probable class indicated by the probability table. Note that if this
+#'   function is passed a matrix with only one column or a vector of values, it will return a vector of the values.
+#'   Care should be taken as this function does not always return the same type (factor)!
+#' @seealso \code{\link{isCat}}, \code{\link{isCont}}, and \code{\link{factorValue}} for help in handling the result.
+#' @export
+#' @examples
+#' data ('siteData')
+#' modelRun <- generateModels (data = siteData,
+#'                             modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+#'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                             y = 'ecoType',
+#'                             grouping = ecoGroup[['domSpecies','transform']])
+#' m <- modelRun$gbm
+#' p <- buildPredict(m)(m, getData(m))
+#' prob2class(p)
+prob2class <- function(prob, classes=colnames(prob), threshold=0) {
+  if (class(prob) != 'matrix') prob <- as.matrix(prob)
+  if (ncol(prob) == 1) {
+    warning('prob2class: expecting a matrix of probabilities, returning the found a vector unchanged')
+    return (as.vector(prob[,1]))
+  }
+  if (ncol(prob) != length (classes)) stop("prob2class: number of classes must match the number of columns")
+
+  as.factor(colnames(prob)[ apply(prob, 1, which.max) ])
+}

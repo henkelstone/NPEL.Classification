@@ -145,15 +145,15 @@ extractPoints <- function (rData, vData, locs, na.omit=T) {
 writeTile <- function (inRdata, model, outFilename, layers=c("class"), threshold=0, labels.all=NULL, ...) {
   # Parameter checks and setup
   layers <- layers[layers %in% c('class','prob','threshold','all')]
-  if ('threshold'%in%layers && (threshold<=0 || threshold>=1)) stop ("Threshold must be specified between but not equal to 0 and 1.")
+  if ('threshold'%in%layers && (threshold<=0 || threshold>=1)) stop ("writeTile: threshold must be specified between but not equal to 0 and 1.")
   probs = T                                             # Are the outputs of predict.* probabilities or the actual classes
   if ( pmatch ('fnn',class(model),nomatch=0) ) {
-    if (length(layers) > 1 || !('class' %in% layers)) warning ("Warning: Cannot generate anything other than class output for fnn.* models. Setting output to 'class' only.")
+    if (length(layers) > 1 || !('class' %in% layers)) warning ("writeTile: Cannot generate anything other than class output for fnn.* models. Setting output to 'class' only.")
     layers = 'class'
     probs<-F
   }
 
-  if (file.access(dirname(outFilename),2)) stop(paste0("Not able to write to the specified folder: ",dirname(outFilename)))
+  if (file.access(dirname(outFilename),2)) stop(paste0("writeTile: Not able to write to the specified folder: ",dirname(outFilename)))
 
   n.all <- 0
   if ('all' %in% layers) {
@@ -161,7 +161,7 @@ writeTile <- function (inRdata, model, outFilename, layers=c("class"), threshold
     if (is.null(labels.all)) labels.all <- paste0('prob.',getClasses(model))
     layers <- layers['all' != layers]
   } else labels.all <- NULL                             # Don't let bad user input confuse the titles
-  if (length(labels.all) != n.all) stop("Error: number of labels provided does not match the number of output classes.")
+  if (length(labels.all) != n.all) stop("writeTile: number of labels provided does not match the number of output classes.")
 
   # Create the shell of a raster.brick for holding output
   outImage <- raster::brick(inRdata, nl=length(layers)+n.all)
@@ -176,7 +176,8 @@ writeTile <- function (inRdata, model, outFilename, layers=c("class"), threshold
     prob <- func(model, as.data.frame(raster::getValues(inRdata,bS$row[i],bS$nrows[i])), ...) # Use the model to predict classes for these cells
     if (!probs) { outData <- factorValues(prob)         # If the output is only classes, then we don't have anything interesting to do here
     } else {
-      outClass <- as.numeric(colnames(prob)[ apply(prob, 1, which.max) ])
+      #      outClass <- as.numeric(colnames(prob)[ apply(prob, 1, which.max) ])
+      outClass <- factorValues(prob2class(prob))
       maxProb <-  apply(prob, 1, max)
       outData <- list ( (if ('class' %in% layers) outClass),
                         (if ('prob' %in% layers)  maxProb),

@@ -57,12 +57,12 @@
 #' @param fx (optional) a formula object specifying the variable relationships; will be generated from x and y if unspecified.
 #' @param x (optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; required if fx is not provided.
 #' @param y (optional) the name of the column of the 'response' variable; defaults to first column; required if fx is not provided.
-#' @param grouping (optional) a transformation vector for input classes; defaults to \sQuote{\code{identity}}. See \code{\link{ecoGroup}} for more information about this technique.
+#' @param grouping (optional) a transformation vector for input classes; if not provided, no grouping will be used. See \code{\link{ecoGroup}} for more information about this technique.
 #' @param echo (optional) should the function report it's progress? Defaults to TRUE, but useful for automation.
-#' @param rf.args (optional) arguments to pass to random forest type models; defaults will be generated for unspecified values
-#' @param nn.args (optional) arguments to pass to nearest neighbour type models; defaults will be generated for unspecified values
-#' @param gbm.args (optional) arguments to pass to gbm; defaults will be generated for unspecified values
-# @param svm.args (optional) arguments to pass to svm; defaults will be generated for unspecified values
+#' @param rf.args (optional) a list of arguments to pass to random forest type models; defaults will be generated for unspecified values
+#' @param nn.args (optional) a list of arguments to pass to nearest neighbour type models; defaults will be generated for unspecified values
+#' @param gbm.args (optional) a list of arguments to pass to gbm; defaults will be generated for unspecified values
+# @param svm.args (optional) a list of arguments to pass to svm; defaults will be generated for unspecified values
 #' @return A named list of models with attributes specifying the data, the function used, and the class.
 #'
 #' @seealso
@@ -81,7 +81,7 @@
 #' @examples
 #' data ('siteData')
 #' modelRun <- generateModels (data = siteData,
-#'                             modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+#'                             modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
 #'                             y = 'ecoType',
 #'                             grouping = ecoGroup[['domSpecies','transform']],
@@ -97,13 +97,15 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   }
 
   defaultCols <- names(data)
-  if (length(y) != 1) stop ("Specify only a single column for y")
-  if (!y %in% defaultCols) stop ("Column specified for y does not occur in the dataset; check the column names.")
-  if (!is.factor(data[,y])) stop ("y needs to be a factor to use classification models")
+  if (length(y) != 1) stop ("generateModels: specify only a single column for y")
+  if (!y %in% defaultCols) stop ("generateModels: Column specified for y does not occur in the dataset; check the column names.")
+
+  #???  if (!is.factor(data[,y])) stop ("generateModels: y needs to be a factor to use classification models")
+  #??? Handle as many types as we're prepared to handle
 
   defaultCols <- names(data)[-match(y,names(data))]
   if (is.null(x)) cols <- defaultCols else {
-    if (sum(!x %in% defaultCols)) stop ("A column specified for x does not occur in the dataset; trimming list to names that are present.")
+    if (sum(!x %in% defaultCols)) stop ("generateModels: a column specified for x does not occur in the dataset; trimming list to names that are present.")
     cols <- x[x %in% defaultCols]
   }
   x <- cols[0 == apply (data[cols],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
@@ -117,21 +119,31 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   }
   rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=F))
   nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=T))
-  gbm.args <- replaceArgs (gbm.args, list(distribution='multinomial', n.trees=1000, keep.data=TRUE))
+  gbm.args <- replaceArgs (gbm.args, list(n.trees=1000, keep.data=TRUE))
 #  svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
 
-  # Group the dataset as necessary, and trim it the used variables
-  if (min(factorValues(data[,y])) < 1) stop ("Cannot group factors with indices less than 1")
-  if (is.null(grouping)) grouping <- 1:max(factorValues(data[,y]))
-  data[,y] <- sortLevels(as.factor( grouping[factorValues(data[,y])] ))
+  # Group the dataset if necessary, and trim it to contain only the used variables
+  if (is.factor(data[,y])) data[,y] <- trimLevels(data[,y])
+  if (!is.null(grouping)) {
+    if (!is.factor(data[,y])) stop ("generateModels: cannot group a non-factor variable")
+    if (min(factorValues(data[,y])) < 1) stop ("generateModels: cannot group factors with indices less than 1")
+#    if (is.null(grouping)) grouping <- 1:max(factorValues(data[,y]))
+    data[,y] <- sortLevels(as.factor( grouping[factorValues(data[,y])] ))
+  }
   data <- data[,c(y,x)]
 
   # Build the models
   args <- list('rF'=rf.args,'rFSRC'=rf.args,'fnn.FNN'=nn.args,'fnn.class'=nn.args,'kknn'=nn.args,'gbm'=gbm.args) #,'svm'=svm.args) # A lookup table for matching arguments with classes
   retObj <- list()
   for (i in modelTypes) {
-    if (echo) print (paste0("Generating: ",i))
-    retObj <- c( retObj,list(buildModel(i,data,fx,args[[i]])) )
+    if (i %in% c('fnn.FNN','fnn.class','kknn') && !is.factor(data[,y])) {
+      #??? Move this up to the top and use siteID instead?
+      warning(paste0("generateModels: ",i," requires factor data; build a classifier based site ID and use ??? to impute the result."))
+      modelTypes <- modelTypes[i != modelTypes]
+    } else {
+      if (echo) print (paste0("Generating: ",i))
+      retObj <- c( retObj,list(buildModel(i,data,fx,args[[i]])) )
+    }
   }
   names (retObj) <- modelTypes
   return ( retObj )
@@ -185,7 +197,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #' str (mAcc,1)
 #' @export
 classAcc <- function (pred, valid, digits=3, classNames=NULL) {
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("Classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
   pred <- trimLevels(pred);          valid <- trimLevels(valid)
   pred <- mergeLevels(pred,valid);   valid <- mergeLevels(valid,pred)
@@ -290,9 +302,7 @@ npelVIMP <- function (model, calc=F, echo=T) {
   df <- getData(model)
   y <- as.character(fx[[2]])
   x <- attr(terms(fx),'term.labels')
-  if (length(x) < 3) stop("Error: not able to compute post hoc VIMP on models with only two variables.")
-
-  if ('gbm' %in% class(model) && (length (x)<=2)) { warning("Unable to compute VIMP on gbm with only two predictor variables"); return(NULL) }
+  if (length(x) < 3) stop("npelVIMP: not able to compute post hoc VIMP on models with only two variables.")
 
   # Get an overall error
   cA <- classAcc(getFitted(model), df[,y])
@@ -410,7 +420,7 @@ npelVIF <- function (fx, data) {
 modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
   y <- as.character(getFormula(models[[1]])[[2]])
   if (class(models) != 'list') models <- list (models)  # In case it is only a single model, wrap it in a list
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("Classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) classNames <- 1:max(as.numeric(levels(getData(models[[1]])[,y])))
 
   userAcc <- prodAcc <- VIMPoverall <- confMatrix <- kappa <- VIMP <- colNames <- NULL
@@ -427,7 +437,7 @@ modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
     cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !calc) 1 else 0 ))
 
     classN <- classNames
-    if (length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("Classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
+    if (length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
     if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
     colnames(tmp)[cols] <- classN
 
