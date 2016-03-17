@@ -170,10 +170,10 @@ writeTile <- function (inRdata, model, outFilename, layers=c("class"), threshold
   bS <- raster::blockSize(inRdata)
 
   # Inner loop: step through each data block, run that data through our classifier (model), generate the required layers, and output the results to a datafile.
-  func <- buildPredict(model)
+  predictor <- buildPredict(model)
   pb <- txtProgressBar (0,bS$n,style=3)
   for (i in 1:bS$n) {
-    prob <- func(model, as.data.frame(raster::getValues(inRdata,bS$row[i],bS$nrows[i])), ...) # Use the model to predict classes for these cells
+    prob <- predictor(model, as.data.frame(raster::getValues(inRdata,bS$row[i],bS$nrows[i])), ...) # Use the model to predict classes for these cells
     if (!probs) { outData <- factorValues(prob)         # If the output is only classes, then we don't have anything interesting to do here
     } else {
       #      outClass <- as.numeric(colnames(prob)[ apply(prob, 1, which.max) ])

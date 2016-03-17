@@ -19,9 +19,9 @@ models <- generateModels (
 
 # Test, can the input be either a stack or a brick???
 test_that("writeTile(s)", {
-  expect_error(writeTiles (egTile, models, 'Delete_', layers=c('class','prob','threshold'), echo=F), "Threshold must be specified between but not equal to 0 and 1.")
-  expect_error(writeTiles (egTile, models, 'Delete_', layers=c('all'), labels.all=c('a','b'), echo=F), "Error: number of labels provided does not match the number of output classes.")
-  expect_error(writeTiles (egTile, models, 'Delete_', '/Oops/', layers=c('all'), labels.all=c('a','b'),echo=F), regexpxp="Error: Not able to write .*")
+  expect_error(writeTiles (egTile, models, 'Delete_', layers=c('class','prob','threshold'), echo=F), regexp="writeTile: threshold must be specified between but not equal to 0 and 1.")
+  expect_error(writeTiles (egTile, models, 'Delete_', layers=c('all'), labels.all=c('a','b'), echo=F), regexp="writeTile: number of labels provided does not match the number of output classes.")
+  expect_error(writeTiles (egTile, models, 'Delete_', '/Oops/', layers=c('all'), labels.all=c('a','b'),echo=F), regexp="writeTile: Not able to write to the specified folder.")
 #   writeTiles ('./', 'Delete_', '.tif', egTile, list(models$rFSRC), layers=c('class','prob','threshold','all'), threshold=0.5) # Should work
 #   unlink ('./Delete_rfsrc.tif')
 })
@@ -31,7 +31,7 @@ test_that("readTile", {
   expect_true(!is.null( readTile(path, c('base','grnns','wetns','brtns','dem','slp','asp','hsd')) ))
 })
 
-vData <- maptools::readShapePoints ('../../data-raw/Plots/Plots')
+vData <- maptools::readShapePoints ('../../inst/extdata/Plots/Plots')
 data (egTile)
 test_that("extractPoints", {
   expect_true(!is.null( extractPoints(egTile, vData, c('EASTING','NORTHING')) ))

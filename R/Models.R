@@ -97,11 +97,12 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   }
 
   defaultCols <- names(data)
-  if (length(y) != 1) stop ("generateModels: specify only a single column for y")
-  if (!y %in% defaultCols) stop ("generateModels: Column specified for y does not occur in the dataset; check the column names.")
+  if (length(y) != 1) stop ("generateModels: specify only a single variable for y")
+  if (!y %in% defaultCols) stop ("generateModels: variable specified for y does not occur in the dataset; check the column names.")
 
-  #???  if (!is.factor(data[,y])) stop ("generateModels: y needs to be a factor to use classification models")
-  #??? Handle as many types as we're prepared to handle
+  if (isCat(data[,y])) {
+    data[,y] <- trimLevels(as.factor(data[,y]))
+  } else if (!isCont(data[,y])) stop("generateModels: specified y satisfied neither isCat nor isCont; check data class.")
 
   defaultCols <- names(data)[-match(y,names(data))]
   if (is.null(x)) cols <- defaultCols else {
@@ -123,11 +124,9 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #  svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
 
   # Group the dataset if necessary, and trim it to contain only the used variables
-  if (is.factor(data[,y])) data[,y] <- trimLevels(data[,y])
   if (!is.null(grouping)) {
-    if (!is.factor(data[,y])) stop ("generateModels: cannot group a non-factor variable")
+    if (!isCat(data[,y])) stop ("generateModels: cannot group a non-factor variable")
     if (min(factorValues(data[,y])) < 1) stop ("generateModels: cannot group factors with indices less than 1")
-#    if (is.null(grouping)) grouping <- 1:max(factorValues(data[,y]))
     data[,y] <- sortLevels(as.factor( grouping[factorValues(data[,y])] ))
   }
   data <- data[,c(y,x)]
@@ -136,9 +135,8 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   args <- list('rF'=rf.args,'rFSRC'=rf.args,'fnn.FNN'=nn.args,'fnn.class'=nn.args,'kknn'=nn.args,'gbm'=gbm.args) #,'svm'=svm.args) # A lookup table for matching arguments with classes
   retObj <- list()
   for (i in modelTypes) {
-    if (i %in% c('fnn.FNN','fnn.class','kknn') && !is.factor(data[,y])) {
-      #??? Move this up to the top and use siteID instead?
-      warning(paste0("generateModels: ",i," requires factor data; build a classifier based site ID and use ??? to impute the result."))
+    if (i %in% c('fnn.FNN','fnn.class','kknn') && !isCat(data[,y])) {
+      warning(paste0("generateModels: ",i," requires categorical data; build a classifier based site ID and use impute??? to calculate the result. Removing model.")) # can we make this process automatic?
       modelTypes <- modelTypes[i != modelTypes]
     } else {
       if (echo) print (paste0("Generating: ",i))
@@ -197,6 +195,11 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #' str (mAcc,1)
 #' @export
 classAcc <- function (pred, valid, digits=3, classNames=NULL) {
+  if (isCat(pred)) { classAcc.Cat (pred, valid, digits, classNames) }
+  else if (isCont(pred)) { classAcc.Cont (pred, valid, digits, classNames) }
+  else stop("classAcc: predictor satisfied neither categorical or continuous criteria; check data.")
+}
+classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
   if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
   pred <- trimLevels(pred);          valid <- trimLevels(valid)
@@ -216,6 +219,15 @@ classAcc <- function (pred, valid, digits=3, classNames=NULL) {
   names (userAcc) <- classNames
   names (prodAcc) <- classNames
   return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, overallAcc=overallAcc, kappa=kappa))
+}
+classAcc.Cont <- function (pred, valid, digits, classNames) {
+  # summary (lm('y~x',data.frame(x=valid,y=pred)))
+  SS.res <- sum( (pred-valid)^2 )
+  SS.tot <- sum((valid-mean(valid))^2)
+  rsq <- 1-SS.res/SS.tot
+  mse <- mean(SS.res)/length(pred)
+  # prsq <- 1-mse/var(valid)                                    # Pseudo R-square as reported by randomForest
+  return (list(overallAcc=rsq, mse=mse))
 }
 
 ##### npelVIMP #####
@@ -305,8 +317,9 @@ npelVIMP <- function (model, calc=F, echo=T) {
   if (length(x) < 3) stop("npelVIMP: not able to compute post hoc VIMP on models with only two variables.")
 
   # Get an overall error
+  VIMP <- NULL
   cA <- classAcc(getFitted(model), df[,y])
-  VIMP <- as.data.frame(t(data.frame(complete=cA$prodAcc)))
+  if (!is.null(cA$prodAcc)) VIMP <- as.data.frame(t(data.frame(complete=cA$prodAcc)))
   overall <- cA$overallAcc
 
   # Build a new model, each one minus one term; compute and compile its accuracy
@@ -315,13 +328,13 @@ npelVIMP <- function (model, calc=F, echo=T) {
     tmp.x <- x[i!=x]
     tmp.model <- generateModels(df, class(model)[[1]], x=tmp.x, y=y, nn.args=attr(model,'nn.args'), echo=F)[[1]] # Convert from list of length 1 to object
     cA <- classAcc(getFitted(tmp.model), df[,y])
-    VIMP <- rbind(VIMP,cA$prodAcc)
+    if (!is.null(cA$prodAcc)) VIMP <- rbind(VIMP,cA$prodAcc)
     overall <- c(overall,cA$overallAcc)
   }
   # Convert output accuracies to a VIMP metric
   VIMP <- cbind(decreaseAcc=overall,VIMP)
   VIMP <- -sweep(VIMP,2,as.numeric(VIMP[1,]))
-  VIMP <- VIMP[-1,]
+  VIMP <- VIMP[-1,,drop=F]
   row.names(VIMP) <- x
   return(VIMP)
 }
@@ -418,8 +431,30 @@ npelVIF <- function (fx, data) {
 #' mE <- modelAccs (modelRun,ecoGroup[['identity','labels']])
 #' @export
 modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
+  if (class(models) != 'list') models <- list (models)                # In case it is only a single model, wrap it in a list
+  if (isCat(models[[1]])) { modelAccs.Cat(models, classNames, calc, echo) }
+  else if (isCont(models[[1]])) { modelAccs.Cont(models, calc, echo) }
+  else stop("modelAccs: dependent variable satisfied neither categorical or continuous criteria; check data.")
+}
+modelAccs.Cont <- function (models, calc, echo) {
   y <- as.character(getFormula(models[[1]])[[2]])
-  if (class(models) != 'list') models <- list (models)  # In case it is only a single model, wrap it in a list
+  overallAcc <- VIMPoverall <- colNames <- NULL
+  for (i in models) {
+    if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
+    tmp <- classAcc(getFitted(i), getData(i)[,y])
+    colNames <- c(colNames, class(i)[[1]])
+    overallAcc <- rbind(overallAcc, data.frame(overallAcc=tmp$overallAcc, mse=tmp$mse))
+
+    tmp <- npelVIMP (i, calc=calc, echo=echo)
+    VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
+  }
+  overallAcc <- as.data.frame(overallAcc)
+  rownames(overallAcc) <- names(VIMPoverall) <- colNames
+  rownames(VIMPoverall) <- attr(terms(getFormula(models[[1]])),'term.labels')
+  return (list(overallAcc=overallAcc, VIMPoverall=VIMPoverall))
+}
+modelAccs.Cat  <- function (models, classNames, calc, echo) {
+  y <- as.character(getFormula(models[[1]])[[2]])
   if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) classNames <- 1:max(as.numeric(levels(getData(models[[1]])[,y])))
 

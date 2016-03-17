@@ -78,12 +78,15 @@ rad2deg <- function (x) { x*180/pi }
 #' p <- buildPredict(m)(m, getData(m))
 #' prob2class(p)
 prob2class <- function(prob, classes=colnames(prob), threshold=0) {
-  if (class(prob) != 'matrix') prob <- as.matrix(prob)
-  if (ncol(prob) == 1) {
-    warning('prob2class: expecting a matrix of probabilities, returning the found a vector unchanged')
-    return (as.vector(prob[,1]))
+  if (class(prob)[1] != 'matrix') {
+    if (class(prob)[1] == 'factor') { warning('prob2class: expecting a matrix of probabilities, returning the found factor unchanged. Did you accidentally pass a collection of values?'); return (prob) }
+    if (class(prob)[1] == 'vector') { warning('prob2class: expecting a matrix of probabilities, returning the found vector unchanged. Did you accidentally pass a collection of values?'); return (prob) }
+    prob <- as.matrix(prob)
+    if (ncol(prob) == 1) {
+      warning('prob2class: expecting a matrix of probabilities, returning the found vector unchanged. Did you accidentally pass a collection of values?')
+      return (as.vector(prob[,1]))
+    }
   }
   if (ncol(prob) != length (classes)) stop("prob2class: number of classes must match the number of columns")
-
-  as.factor(colnames(prob)[ apply(prob, 1, which.max) ])
+  sortLevels(as.factor(colnames(prob)[ apply(prob, 1, which.max) ]))
 }

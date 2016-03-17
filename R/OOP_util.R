@@ -72,8 +72,8 @@ isCont.default <- function(x){
   if (class(x) %in% c('factor','character','logical')) return(FALSE)
   if (class(x) %in% c('numeric','integer')) return(TRUE)
   if (class(x) %in% c('array','matrix','data.frame')) {
-    warning ("isCat: expects only a single column; running test on the first column")
-    return( isCat(x[,1,drop=F]) )
+    warning ("isCont: expects only a single column; running test on the first column")
+    return( isCont(x[,1,drop=F]) )
   }
   stop("isCont: unexpected class passed to isCont")
 }
@@ -240,13 +240,31 @@ getArgs <- function(model) {
 ##### getFitted #####
 #' Extract the fitted data from a model object
 #'
-#' This function returns the fitted data that the model was built on; that is, if we 'predict' this model using the same
-#' data we used to generate the model, we would get this as a result.
+#' This function returns the fitted data that the model was built on; that is, if we 'predict' this model using the same data we used to
+#' generate the model, we would get this as a result.
 #'
-#' @note The nearest neighbour models in package:FNN and package:class do not enclose their results in a class; when
-#'   NPEL.Classification builds objects of these types it wraps them in a class so they are recognizable by S3 methods,
-#'   and attaches the formula and data. Hence, if a model was built directly using these packages the result will not
-#'   run this function.
+#' There is a subtle but significant point about getFitted: it cannot be assumed that \code{predict} called with the same data used to
+#' generate the model will give the same results as getFitted. In general, when the original data is dropped down through a classifier, it
+#' will return the orginal results. It makes sense: if this is a known data point, then why not return the known class. However, in order to
+#' estimate accuracy, most packages will use some type of technique to give a dataset that shows what the model \emph{would} have return if
+#' the datapoint had \emph{not} been included in the original data. In all cases, getFitted returns this dataset: the one that can be used
+#' for error estimation. \code{\link{buildPredict}} was designed for classifying new data; what it returns when original data is used is
+#' dependent on both the type of classifier and the implementation of the package.
+#' \itemize{
+#'   \item Random Forest: both packages will estimate the accuracy based on data that falls out-of-bag (OOB); that is, when a data point is
+#'   not directly represented in a tree, that data point can be used to estimate the accuracy of that tree. The technique is akin to a
+#'   leave-one-out validation method.
+#'   \item Nearest Neighbour: the issue here is identical. getFitted is estimated using a leave-out-out cross-validation approach for all
+#'   packages. The predict function will return the original data. In the case of the FNN package, the nearest-neighbour index is included in
+#'   the model results; the \emph{second} nearest neighbour returned by predict matches the values returned by getFitted.
+#'   \item GBM: in this case, the values of getFitted match those returned by predict.
+#' }
+#'
+#' @note The nearest neighbour models in package:FNN and package:class do not enclose their results in a class; when NPEL.Classification
+#'   builds objects of these types it wraps them in a class so they are recognizable by S3 methods, and attaches the formula and data.
+#'   Hence, if a model was built directly using these packages the result will not run this function.
+#' @section Warning:
+#'   I am concerned that there is a bug in FNN::knn and possibly class::knn??? describe or remove this note
 #' @param model is the model for which to extract the fitted data
 #' @return a factor variable containing the fitted data
 #' @export
@@ -256,16 +274,20 @@ getFitted <- function(model) {
 #' @export
 getFitted.randomForest <- function(model) {
   pred <- model$predicted
-  attr(pred,'names') <- NULL
+  names(pred) <- NULL
   pred
 }
 #' @export
 getFitted.rfsrc <- function(model) {
-  if (exists('class.oob',model)) return(model$class.oob)
-  return (model$predicted.oob)
+  if (isCat(model)) return(model$class.oob)
+  return (as.numeric(model$predicted.oob))
 }
 #' @export
-getFitted.fnn.FNN <- function(model) { model$fnn }
+getFitted.fnn.FNN <- function(model) { # model$fnn # There's a bug in FNN package that means this won't work???
+  y <- as.character(getFormula(model)[[2]])
+  d <- getData(model)[,eval(y)]
+  d[attr(model$fnn,'nn.index')[,1]]
+}
 #' @export
 getFitted.fnn.class <- function(model) { model$fnn }
 #' @export
@@ -273,7 +295,7 @@ getFitted.kknn <- function(model) { model$fitted.values[[ which(sapply(model$fit
 #' @export
 getFitted.gbm <- function(model) {
   pred <- predict(model, getData(model), (function(){ capture.output(suppressWarnings(tmp<-gbm::gbm.perf(model,plot.it=F))); tmp })() )
-  if (model$num.classes > 1) return( factor(model$classes[apply(pred,1,which.max)]) )
+  if (isCat(model)) return( factor(model$classes[apply(pred,1,which.max)]) )
   return(pred)
 }
 #' @export
@@ -455,7 +477,7 @@ buildModel <- function(type,data,fx,args=NULL) {
   y <- as.character(terms(fx)[[2]])
   if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
   model <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=args$k))
-  structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args, class='fnn.FNN')
+  structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.FNN')
 }
 #' @export
 .buildModel.fnn.class <- function(data,fx,args=NULL) {
@@ -463,7 +485,7 @@ buildModel <- function(type,data,fx,args=NULL) {
   y <- as.character(terms(fx)[[2]])
   if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
   model <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=args$k))
-  structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args, class='fnn.class')
+  structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.class')
 }
 #' @export
 .buildModel.kknn <- function(data,fx,args=NULL) {
@@ -471,7 +493,7 @@ buildModel <- function(type,data,fx,args=NULL) {
   y <- as.character(terms(fx)[[2]])
   if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
   model <- do.call(kknn::train.kknn, list(formula=quote(fx), data=quote(data), kmax=args$kmax, kernel=args$kernel))
-  structure (.Data=model, args=args, class=rev(class(model)))
+  structure (.Data=model, args=args[c('kmax','kernel','scale')], class=rev(class(model)))
 }
 #' @export
 .buildModel.gbm <- function(data,fx,args=NULL) {
@@ -523,7 +545,7 @@ buildPredict.rfsrc <- function(model) {
 # It isn't necessary to compute importance; and rfsrc can handle missing values.
   requireNamespace('randomForestSRC')
   return ( function (model,data,...) {
-    return( predict(model,data,importance='none',na.action='na.impute',...)$predicted )
+    return( predict(model,data,...)$predicted )
   } )
 }
 #' @export
@@ -532,7 +554,13 @@ buildPredict.fnn.FNN <- function(model) {
   requireNamespace('FNN')
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
-    return ( FNN::knn(model$train,data[names(model$train)],model$classes,...) )
+    if (getArgs(model)$scale) {
+      fx <- getFormula(model)
+      y <- as.character(fx[[2]])
+      x <- attr(terms(fx),'term.labels')
+      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+    }
+    return ( FNN::knn(train=model$train, test=data[names(model$train)], cl=model$classes, k=getArgs(model)$k,...) )
   } )
 }
 #' @export
@@ -541,7 +569,13 @@ buildPredict.fnn.class <- function(model) {
   requireNamespace('class')
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
-    return ( class::knn(model$train,data[names(model$train)],model$classes,...) )
+    if (getArgs(model)$scale) {
+      fx <- getFormula(model)
+      y <- as.character(fx[[2]])
+      x <- attr(terms(fx),'term.labels')
+      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+    }
+    return ( class::knn(model$train,data[names(model$train)],model$classes,getArgs(model)$k,...) )
   } )
 }
 #' @export
@@ -550,7 +584,13 @@ buildPredict.kknn <- function(model) {
   requireNamespace('kknn')
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
-    return( kknn::kknn(formula=model$terms,train=model$data,test=data,k=model$best.parameters[[2]],kernel=model$best.parameters[[1]],na.action=na.pass(),...)$prob)
+    if (getArgs(model)$scale) {
+      fx <- getFormula(model)
+      y <- as.character(fx[[2]])
+      x <- attr(terms(fx),'term.labels')
+      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+    }
+    return( kknn::kknn(formula=model$terms,train=model$data,test=data,k=model$best.parameters[[2]],kernel=model$best.parameters[[1]],getArgs(model)[c('kmax','kernel')],...)$fitted.values)
   } )
 }
 #' @export
@@ -567,7 +607,7 @@ buildPredict.gbm <- function(model) {
       capture.output(suppressWarnings(n <- gbm::gbm.perf(model,plot.it=F)))
       return( predict(model,data,n.trees=n,type='response',...) )
     } )
-  } else stop("buildPredict.randomForest: model is neither categorical nor continuous")
+  } else stop("buildPredict.gbm: model is neither categorical nor continuous")
 }
 #' @export
 buildPredict.svm <- function(model) {

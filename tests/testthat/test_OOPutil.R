@@ -36,7 +36,7 @@ args <- list('rF'        = rf.args,
 
 # Just check buildModel actually works and returns the correct type
 test_that("buildModel", {
-  if (verbose) print("Building models: ")
+  if (verbose) print("Building models for categorical data: ")
   for (i in c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm')) {
     if (verbose) print (paste0(i,'...'))
     ( i %in% class(buildModel(i,data,fx,args[[i]])) )
@@ -94,23 +94,53 @@ test_that("getProb", {
   }
 })
 
-# Cannot test getFitted with a random dataset... it would use the same code as the getFitted function! Just print the results, what type, and the error from the method. Can we do better???
-test_that("getFitted", {
-  if (verbose) cat('\nChecking fitted\n')
-  # if (verbose) cat('Y: ',factorValues(y),'\n')
+# Most of the model types cannot be compared by dropping the same data down the model:
+#   rF, rFSRC: both return the original y data, whereas for getFitted they return a leave-one-out cross-validation dataset
+#   FNN: can be compared, but must be handled manually as it is the second nearest neighbour that will be closest
+#   class: cannot be compared for a similar reason to rF/rFSRC, but does not return the index matrix and so can't be done manually
+#   kknn: as for class
+#   gbm: can be compared
+
+test_that("getFitted and buildPredict", {
+  if (verbose) cat('\nChecking getFitted and buildPredict')
   for (i in testRun) {
-    tmp <- getFitted(i)
-    if (verbose) print (paste0('Class: ',class(i)[[1]],'; Accuracy:',classAcc(tmp,y)[[4]]), digits=2 )
-    expect_equal(class(tmp), 'factor')
-    attributes(tmp) <- NULL
-    # if (verbose) cat('Y:',factorValues(tmp),'\n')
+    gF <- getFitted(i)
+    expect_equal(class(gF), 'factor')
+    if (verbose) cat ('\nClass: ',class(i)[[1]],'; Accuracy:',format(classAcc(gF,y)[[4]], digits=2))
+    bP <- buildPredict(i)(i,getData(i))
+
+    if (class(i)[[1]] %in% c('rF','rFSRC')) {
+      expect_equal(prob2class(bP), y)                           # The best value from bP should be the original data...
+    } else if (class(i)[[1]] %in% 'fnn.FNN') {
+      expect_equal(y[attr(bP,'nn.index')[,1]], y)               # The best value from bP should be the original data...
+      expect_equal(y[attr(bP,'nn.index')[,2]], getFitted(i))    # ... but the fitted data from the original model should be the second nearest neighbour in bP
+    } else if (class(i)[[1]] %in% 'fnn.class') {
+    } else if (class(i)[[1]] %in% 'kknn') {
+    } else if (class(i)[[1]] %in% 'gbm') {
+      expect_equivalent(prob2class(bP), gF)
+    }
   }
 })
+
+# Test whether predict still works with scaling
+nn.args  <- list(k=3, kmax=7, kernel=c('rectangular','optimal'), scale=T)
+testRun <- generateModels(data=data, modelTypes=c('fnn.FNN','fnn.class','kknn'),
+                          fx=fx, grouping=ecoGroup[['identity','transform']], echo=F, nn.args=nn.args)
+nn.args  <- list(k=3, kmax=7, kernel=c('rectangular','optimal'), scale=F)
 test_that("buildPredict", {
-  if (verbose) print("Building prediction functions: ")
+  if (verbose) cat("\nCheck buildPredict with scaling: ")
   for (i in testRun) {
-    if (verbose) print (paste0(class(i)[1],'...'))
-    buildPredict(i)(i,data)
+    gF <- getFitted(i)
+    expect_equal(class(gF), 'factor')
+    if (verbose) cat ('\nClass: ',class(i)[[1]],'; Accuracy:',format(classAcc(gF,y)[[4]], digits=2))
+    bP <- buildPredict(i)(i,getData(i))
+
+    if (class(i)[[1]] %in% 'fnn.FNN') {
+      expect_equal(y[attr(bP,'nn.index')[,1]], y)               # The best value from bP should be the original data...
+      expect_equal(y[attr(bP,'nn.index')[,2]], getFitted(i))    # ... but the fitted data from the original model should be the second nearest neighbour in bP
+    } else if (class(i)[[1]] %in% 'fnn.class') {
+    } else if (class(i)[[1]] %in% 'kknn') {
+    }
   }
 })
 
@@ -120,7 +150,7 @@ data <- data.frame(y,x1,x2,x3)
 
 # Just check buildModel actually works and returns the correct type
 test_that("buildModel", {
-  if (verbose) print("Building models: ")
+  if (verbose) cat("\n\nBuilding models for continuous data: ")
   for (i in c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm')) {
     if (verbose) print (paste0(i,'...'))
     ( i %in% class(buildModel(i,data,fx,args[[i]])) )
@@ -186,7 +216,7 @@ test_that("getFitted", {
   for (i in testRun) {
     tmp <- getFitted(i)
     if (verbose) print (paste0('Class: ',class(i)[[1]],'; Accuracy:',classAcc(tmp,y)[[4]]), digits=2 )
-    expect_equal(class(tmp), 'numeric')
+    expect_equal(class(tmp), 'numeric',info=class(i)[[1]])
     attributes(tmp) <- NULL
     # if (verbose) cat('Y:',factorValues(tmp),'\n')
   }
