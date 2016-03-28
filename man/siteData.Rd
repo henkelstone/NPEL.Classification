@@ -2,8 +2,6 @@
 % Please edit documentation in R/Docs.R
 \docType{data}
 \name{siteData}
-\alias{#}
-\alias{???}
 \alias{siteData}
 \title{An example of site data; this is the portion of the data collected in-house.}
 \format{A data frame with columns as variables and rows as sites.}
@@ -73,10 +71,10 @@ siteData$ecoType
 siteData[,'ecoType']
 siteData[,c('easting','northing')]
 
-modelRun <- generateModels (data=siteData,
-                            modelTypes=c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
-                            fx=formula('ecoType ~ brtns+grnns+wetns+dem+slp+asp+hsd'),
-                            grouping=ecoGroup[['domSpecies','transform']])
+modelRun <- generateModels (data = siteData,
+                            modelTypes = suppModels,
+                            fx = formula('ecoType ~ brtns+grnns+wetns+dem+slp+asp+hsd'),
+                            grouping = ecoGroup[['domSpecies','transform']])
 
 \dontrun{
 vData <- maptools::readShapePoints ('Input/Plots/Plots')         # Read in from a ESRI shapefile

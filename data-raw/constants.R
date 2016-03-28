@@ -1,8 +1,14 @@
-# Generate Ecotype Groupings
+# Create package constants
 
+##### Scope Constants #####
+suppModels <- c('randomForest','rfsrc','fnn.FNN','fnn.class','kknn','gbm')          # Which packages (model classes) are supported by NPEL.Classification
+probModels <- c('randomForest','rfsrc','fnn.FNN','fnn.class','kknn','gbm')          # Which packages generate probabilities when passed categorical data
+contModels <- c('randomForest','rfsrc','kknn','gbm')                                # Which packages are able to handle continuous data }
+
+##### Generate Ecotype Groupings #####
 # Create a shell to fill with data
 ecoGroup <- list(); length(ecoGroup) <- 12;
-dim(ecoGroup) <- c(4,3)                             # Three rows (different classifiers), and three columns (type of data we could extract)
+dim(ecoGroup) <- c(4,3)                                                   # Three rows (different classifiers), and three columns (type of data we could extract)
 rownames(ecoGroup)=c('identity','domSpecies','maxGranularity','domGroup') # Rows are different grouping scenarios
 colnames(ecoGroup)=c('transform','labels','colours')                      # Cols are different things we could look up
 

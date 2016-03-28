@@ -13,20 +13,16 @@ gbm.args <- list(n.trees=1000, keep.data=TRUE)
 #svm.args <- list(scale=F, probability=T)
 data('siteData')
 
-##### Test continuous groupings fail #####
-test_that("generateModels", {           # Cannot use grouping with continuous variables
-  expect_error( generateModels (data = siteData,
-                                modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
-                                x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
-                                y = 'easting',
-                                grouping = ecoGroup[['domSpecies','transform']],
-                                rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args) )
+##### Test continuous warnings #####
+test_that("generateModels", {
+  expect_warning( generateModels (data=siteData, modelTypes=suppModels, x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='easting', grouping=ecoGroup[['domSpecies','transform']], rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args), "generateModels: cannot group a non-factor variable; ignoring grouping.")
+  expect_warning( generateModels (data=siteData, modelTypes=suppModels, x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='easting', rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args), "generateModels: fnn.FNN requires categorical data")
 })
 
 ##### Test categorical data #####
 cat ("\n\nTest with categorical data\n")
-models <- generateModels (data = siteData,
-                          modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+models <- generateModels (data = NPEL.Classification::siteData,
+                          modelTypes = suppModels,
                           x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                           y = 'ecoType',
                           grouping = ecoGroup[['domSpecies','transform']],
@@ -64,16 +60,10 @@ test_that("modelAccs", {
 ##### Test continuous data #####
 cat ("\n\nTest with continuous data\n")
 rf.args  <- list(mtry=floor(7/3), importance='permute', na.action='na.omit', proximity=F)
-models <- generateModels (data = siteData, modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+models <- generateModels (NPEL.Classification::siteData, contModels,
                           x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                           y = 'easting',
                           rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args)
-
-test_that("classAcc", {
-  for (i in models) {
-    expect_true( !is.null(classAcc(getFitted(i), getData(i)[,'easting'])) )
-  }
-})
 
 test_that("npelVIMP", {
   for (i in models) {
@@ -90,9 +80,26 @@ test_that("npelVIF", {
   }
 })
 
+test_that("classAcc", {
+  for (i in models) {
+    expect_true( !is.null(classAcc(getFitted(i), getData(i)[,'easting'])) )
+  }
+})
+
 test_that("modelAccs", {
   if (verbose) cat('\n')
-  expect_true( !is.null(runA <- modelAccs(models,calc=F)) )
-  expect_true( !is.null(runB <- modelAccs(models,calc=T)) )
+  expect_true( !is.null(runA <- modelAccs(models, calc=F, echo=verbose)) )
+  expect_true( !is.null(runB <- modelAccs(models, calc=T, echo=verbose)) )
   expect_false( identical(runA,runB) )
+})
+
+test_that("validate", {
+  for (i in models) {
+    expect_true( !is.null(validate(i, getData(i))) )
+  }
+})
+
+test_that("modelsValid", {
+  if (verbose) cat('\n')
+  expect_true( !is.null(runA <- modelsValid(models, getData(models[[1]]), echo=verbose)) )
 })

@@ -16,6 +16,10 @@ TRUE if the object is continuous, or is a model built on continuous data, FALSE 
 Checks if an object is continuous (or categorical). Currnetly accepts either a vector, presumably from a data frame,
 or a model object. In the case of the latter, it will check whether the model was built using continuous data.
 }
+\details{
+Note that it cannot be assume that if a model fails \code{isCont} it will pass \code{\link{isCat}}; both functions test for the
+conditions which it expects to hold, and there may be cases in which neither set of conditions is fully met.
+}
 \examples{
 isCont(siteData$ecoType)
 isCont(siteData$slope)

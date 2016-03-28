@@ -2,7 +2,7 @@
 % Please edit documentation in R/Models.R
 \name{classAcc}
 \alias{classAcc}
-\title{Generates basic error statistics for a classification model}
+\title{Generates basic error statistics for a model}
 \usage{
 classAcc(pred, valid, digits = 3, classNames = NULL)
 }
@@ -13,21 +13,25 @@ classAcc(pred, valid, digits = 3, classNames = NULL)
 
 \item{digits}{(optional) the number of digits to output for the error; defaults to 3.}
 
-\item{classNames}{(optional) a character vector of class names (strings). It is required because in the grouped models, there are no
-meaningful classnames integral to the model. What is provided here is subsetted to include only the levels that are actually present in
-the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.}
+\item{classNames}{(optional) a character vector of class names (strings). It is necessary because in grouped models, there are no
+meaningful classnames stored internal to the model. classNames will be subsetted to include only the levels that are actually present
+in the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.}
 }
 \value{
-Accuracy data as a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
-  \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
+Note: this function returns different data depending on the whether the model is categorical or continuous:
+\itemize{
+  \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
+    \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
+  \item \code{continuous} a two element names list: \code{overallAcc} = overall accuracy, \code{mse} = mean squared error
+}
 }
 \description{
-A common question is what is the accuracy of the model we have created; this function aims to provide information towards answering that
-question. There are a number of different metrics used, this one computes the out-of-bag metrics (OOB): the confusion matrix, the user
-accuracy, the producer accuracy, the overall OOB accuracy, and the Kappa statistic; see details below.
+A reasonable question is: what is the accuracy of the model we have created; this function aims to provide information towards answering
+that question. There are a number of different metrics used depending primarily on whether the model encodes categorical or continuous
+data---see below for details.
 }
 \details{
-The metrics returned from classAcc are:
+The metrics returned for \emph{categorical} models are:
 \itemize{
   \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
     predicted values as rows and actual values as columns.
@@ -35,27 +39,42 @@ The metrics returned from classAcc are:
     that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
     is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
     the number sites that the model predicted to be in that class.
-  \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies for
-     that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called omission error,
-     is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the number that are
-     actually of that class.
+  \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies
+    for that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called
+    omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the
+    number that are actually of that class.
   \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
     predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
     chance, standardized by unity less the probability by chance alone.
-     \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
+      \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
+}
+The metrics returned for \emph{continuous} models are:
+\itemize{
+  \item \code{overallAcc} is the overall r-squared, computed by \eqn{1 - \frac{SS.residual}{SS.total}}{1 - SS.residual/SS.total}
+  \item \code{mse} is the raw mean squared error, computed by \eqn{mean(SS.residual)/N}
 }
 }
 \examples{
 data ('siteData')
 modelRun <- generateModels (data = siteData,
-                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            modelTypes = suppModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
                             grouping = ecoGroup[['domSpecies','transform']])
-model <- modelRun$rF
-cat(search())
-mAcc <- classAcc (getFitted(model),getData(model)$ecoType,
-                  classNames=ecoGroup[['identity','labels']])
+model <- modelRun$randomForest
+mAcc <- classAcc (getFitted(model),getData(model)[['ecoType']],
+                  classNames=ecoGroup[['domSpecies','labels']])
 str (mAcc,1)
+
+modelRun <- generateModels (data = siteData,
+                            modelTypes = contModels,
+                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+                            y = 'easting')
+model <- modelRun$randomForest
+mAcc <- classAcc (getFitted(model),getData(model)[['easting']])
+str (mAcc,1)
+}
+\seealso{
+\code{\link{generateModels}} for creating models; \code{\link{isCat}}, \code{\link{isCont}} for how categorical/continuous type is evaluated.
 }
 

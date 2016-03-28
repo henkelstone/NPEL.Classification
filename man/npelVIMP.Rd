@@ -75,12 +75,12 @@ VIMP in general. In fact, that our model can compute VIMP on all the models used
 \examples{
 data ('siteData')
 modelRun <- generateModels (data = siteData,
-                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            modelTypes = suppModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
                             grouping = ecoGroup[['domSpecies','transform']])
-npelVIMP (modelRun$rFSRC,calc=F)
-npelVIMP (modelRun$rFSRC,calc=T)
+npelVIMP (modelRun$rfsrc,calc=F)
+npelVIMP (modelRun$rfsrc,calc=T)
 }
 \seealso{
 VIMP information for genpackages used that have VIMP metrics included: \code{\link[randomForest]{importance}},

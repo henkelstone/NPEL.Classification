@@ -2,26 +2,39 @@
 % Please edit documentation in R/Models.R
 \name{modelAccs}
 \alias{modelAccs}
-\title{Generate accuracy statistics and variable importance for a list of models}
+\title{Generate accuracy statistics and variable importance for a list of models; a wrapper for \code{classAcc}.}
 \usage{
 modelAccs(models, classNames = NULL, calc = F, echo = T)
 }
 \arguments{
-\item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate}
+\item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate.}
 
-\item{classNames}{(optional) class names to attach to the tables}
+\item{classNames}{(optional) class names to attach to the tables; only used if the data is categorical.}
 
-\item{calc}{(optional) passed on to \code{\link{npelVIMP}}, defaults to false}
+\item{calc}{(optional) passed on to \code{\link{npelVIMP}}, defaults to false.}
 
-\item{echo}{(optional) should the function print out it's progress, defaults to false}
+\item{echo}{(optional) should the function print out it's progress, defaults to false.}
 }
 \value{
-A named list of accuracy and VIMP data: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy, \code{prodAcc} =
-  producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa, \code{VIMP} = VIMP matrices, \code{VIMPoverall} =
-  overall VIMP
+This function returns different values depending on whether the model is categorical or continuous. For categorical data it
+  returns a named list of accuracy and VIMP statistics:
+  \itemize{
+    \item \code{confMatrix} = confusion matrix
+    \item \code{userAcc} = user accuracy
+    \item \code{prodAcc} = producer accuracy
+    \item \code{overallAcc} = overall accuracy
+    \item \code{kappa} = kappa
+    \item \code{VIMP} = VIMP matrices
+    \item \code{VIMPoverall} = overall VIMP
+  }
+For continuous data:
+  \itemize{
+    \item \code{overallAcc} = overall r-squared
+    \item \code{mse} = mean squared error
+  }
 }
 \description{
-Given a block (list) of models, this function runs \code{\link{classAcc}} and the \code{\link{npelVIMP}} metric on each. See details for a
+Given a list of models, this function runs \code{\link{classAcc}} and \code{\link{npelVIMP}} on each. See details for a
 description of how the data is encapsulated for return.
 }
 \details{
@@ -44,15 +57,28 @@ Columns are different models and entries in the table are the standardized VIMP 
 See the details section of \code{\link{npelVIMP}} for a discussion of the limitations of our VIMP metric.
 }
 \examples{
+# Categorical Data
 data ('siteData')
 modelRun <- generateModels (data = siteData,
-                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            modelTypes = suppModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
-                            grouping = ecoGroup[['domSpecies','transform']])
-mE <- modelAccs (modelRun,ecoGroup[['identity','labels']])
+                            grouping = ecoGroup[['domSpecies','transform']],
+                            echo = FALSE)
+mE <- modelAccs (modelRun, ecoGroup[['domSpecies','labels']])
+str(mE,1)
+
+# Contiuous Data
+modelRun <- generateModels (data = siteData,
+                            modelTypes = contModels,
+                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+                            y = 'easting',
+                            echo = FALSE)
+mE <- modelAccs (modelRun)
+str(mE,1)
 }
 \seealso{
-\code{\link{classAcc}} for more on class level accuracies, and \code{\link{npelVIMP}} for more on how that metric is computed and it's limitations.
+\code{\link{classAcc}} for more on continuous and categorical accuracies, and \code{\link{npelVIMP}} for more on how that metric
+  is computed and it's limitations. Also see \code{\link{modelsValid}} for a function to compute accuracies using an independent dataset.
 }
 

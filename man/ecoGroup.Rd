@@ -88,24 +88,42 @@ section for more information on this gotcha.
 }
 \examples{
 data (siteData)
-ecoGroup[['domSpecies','transform']][ factorValues(siteData$Ecotype) ]
+ecoGroup[['domSpecies','transform']][ factorValues(siteData$ecoType) ]
 
-# Code for generating this object--so you can make your own!
+## Code for generating this object--so you can make your own!
 # Create a shell to fill with data
 ecoGroup <- list(); length(ecoGroup) <- 12;
-dim(ecoGroup) <- c(4,3)                             # Three rows (different classifiers), and three columns (type of data we could extract)
-rownames(ecoGroup)=c('identity','domSpecies','maxGranularity','domGroup') # Rows are different grouping scenarios
-colnames(ecoGroup)=c('transform','labels','colours')                      # Cols are different things we could look up
+dim(ecoGroup) <- c(4,3)               # Three rows (classifiers), three columns (type of data)
+rownames(ecoGroup)=c('identity','domSpecies','maxGranularity','domGroup')
+colnames(ecoGroup)=c('transform','labels','colours')
 
-# Fill with data
-ecoGroup['identity',] <- list(c(1:27), paste0('BS',1:27), 1:27)
-ecoGroup['domSpecies',] <- list( c(1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,7,8,8,8,8,9,9,9,9,9,10,10),
-                                 c('1'="Barren",'2'="Pine",'3'="Black Sp",'4'="White Sp",'5'="Birch",'6'="Aspen",'7'="Swamp",'8'="Bog",'9'="Fen",'10'="Shore"),
-                                 c('1'="gray",'2'="tan1",'3'="green4",'4'="seagreen",'5'="green3",'6'="green2",'7'="steelblue",'8'="steelblue2",'9'="steelblue4",'10'="azure") )
-ecoGroup['maxGranularity',] <- list( c(1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,17,18,18,19,20,20,21,21), paste0('BS',1:21), 1:21)
-ecoGroup['domGroup',] <- list( c(1,1,2,2,2,2,2,2,2,2,2,2,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4),
-                               c("Barren","Conifer","Decid","Wetland"),
-                               c('1'="gray",'2'="green4",'3'="green2",'4'="steelblue") )
+# Fill with data in increasing order of lumping
+ecoGroup['identity',] <- list(
+  c(1:27),
+  paste0('BS',1:27),
+  c('#FFFF00','#E6E600','#FF9900','#E47A07','#BD6A06','#965B05','#4C7300','#5E8D00','#70A800',
+    '#82C300','#008C4B','#00A04B','#ABFF8F','#42FF07','#7EFF54','#41DBCF','#00A884','#3FC5A5',
+    '#7EE2C6','#BEFFE8','#97E2FF','#8DD4F0','#83C6E1','#79B8D2', '#6FABC3','#AC44E7','#C077E3')
+)
+ecoGroup['maxGranularity',] <- list(
+  c(1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,17,18,18,19,20,20,21,21),
+  c('Sparse',paste0('BS',3:15),'Treed bog/swamp','BS18','Sparse bog','Upright fen','BS23','Sparse fen','Shoreline'),
+  c('#E6E600','#FF9900','#E47A07','#BD6A06','#965B05','#4C7300','#5E8D00','#70A800','#82C300',
+    '#008C4B','#00A04B','#ABFF8F','#42FF07','#7EFF54','#00A884','#3FC5A5','#BEFFE8','#97E2FF',
+    '#83C6E1','#6FABC3','#C077E3')
+)
+ecoGroup['domSpecies',] <- list(
+  c(1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,7,8,8,8,8,9,9,9,9,9,10,10),
+  c('1'="Barren",'2'="Pine",'3'="Black Sp",'4'="White Sp",'5'="Birch",'6'="Aspen",'7'="Swamp",
+    '8'="Bog",'9'="Fen",'10'="Shore"),
+  c('1'="gray",'2'="tan1",'3'="green4",'4'="seagreen",'5'="green3",'6'="green2",'7'="steelblue",
+    '8'="steelblue2",'9'="steelblue4",'10'="azure")
+)
+ecoGroup['domGroup',] <- list(
+  c(1,1,2,2,2,2,2,2,2,2,2,2,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4),
+  c("Barren","Conifer","Decid","Wetland"),
+  c('1'="gray",'2'="green4",'3'="green2",'4'="steelblue")
+)
 }
 \keyword{datasets}
 

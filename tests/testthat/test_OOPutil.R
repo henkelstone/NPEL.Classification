@@ -2,6 +2,7 @@
 # Created by Jonathan Henkelman 28.Jan.2016
 
 library(NPEL.Classification)
+library(testthat)
 context("OOP_util Functions")
 cat('\n')
 verbose = T
@@ -18,6 +19,22 @@ rf.args  <- list(mtry=floor(sqrt(2)), importance='permute', na.action='na.omit',
 nn.args  <- list(k=3, kmax=7, kernel=c('rectangular','optimal'), scale=F)
 gbm.args <- list(n.trees=1000, keep.data=TRUE)
 #svm.args <- list(scale=F, probability=T)
+args <- list('randomForest' = rf.args,
+             'rfsrc'        = rf.args,
+             'fnn.FNN'      = nn.args,
+             'fnn.class'    = nn.args,
+             'kknn'         = nn.args,
+             'gbm'          = gbm.args)
+
+##### Test isCat/isCont #####
+test_that("isCat/isCont", {
+  expect_true(isCat(siteData$ecoType))
+  expect_false(isCat(siteData$easting))
+  expect_warning(isCat(siteData),regexp="isCat: expects only a single column; running test on the first column")
+  expect_false(isCont(siteData$ecoType))
+  expect_true(isCont(siteData$easting))
+  expect_warning(isCont(siteData),regexp="isCont: expects only a single column; running test on the first column")
+})
 
 ##### Test with categorical data #####
 y <- round(func(x1,x2,x3) + rnorm (n,0,sd))
@@ -27,24 +44,17 @@ y <- factor(round (y/10+1))
 
 fx <- formula('y~x1+x2+x3')
 data <- data.frame(y,x1,x2,x3)
-args <- list('rF'        = rf.args,
-             'rFSRC'     = rf.args,
-             'fnn.FNN'   = nn.args,
-             'fnn.class' = nn.args,
-             'kknn'      = nn.args,
-             'gbm'       = gbm.args)
 
 # Just check buildModel actually works and returns the correct type
 test_that("buildModel", {
   if (verbose) print("Building models for categorical data: ")
-  for (i in c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm')) {
+  for (i in suppModels) {
     if (verbose) print (paste0(i,'...'))
     ( i %in% class(buildModel(i,data,fx,args[[i]])) )
   }
 })
 
-testRun <- generateModels(data=data, modelTypes=c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'), # ??? Add svm when it works
-                          fx=fx, grouping=ecoGroup[['identity','transform']], echo=F, rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args)
+testRun <- generateModels(data=data, modelTypes=suppModels,fx=fx, grouping=ecoGroup[['identity','transform']], echo=F, rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args)
 test_that("isCat/isCont", {
   for (i in testRun) {
     expect_true (isCat(i))
@@ -61,6 +71,12 @@ test_that("getClasses", {
   for (i in testRun) {
     expect_equal(getClasses(i),levels(y))
     expect_equal(class(getClasses(i)),'character')
+  }
+})
+test_that("getProb", {
+  # Cannot test with a random dataset... just make sure it runs without an error.
+  for (i in testRun) {
+    getProb(i)
   }
 })
 test_that("getFormula", {
@@ -84,20 +100,14 @@ test_that("getVIMP", {
     expect_equal(colnames(vimp)[-1], c(levels(y),if(class(i)[[1]]=='gbm') 'rel.inf'))
     expect_equal(rownames(vimp), c('x1','x2','x3'))
   }
-  tmp <- generateModels(data[,1:3],c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),nn.args=list(scale=F),echo=F)
+  tmp <- generateModels(data[,1:3],suppModels,nn.args=list(scale=F),echo=F)
   expect_error(getVIMP(tmp[['fnn.FNN']]),'npelVIMP: not able to compute post hoc VIMP on models with only two variables.')
-})
-test_that("getProb", {
-  # Cannot test with a random dataset... just make sure it runs without an error.
-  for (i in testRun) {
-    getProb(i)
-  }
 })
 
 # Most of the model types cannot be compared by dropping the same data down the model:
-#   rF, rFSRC: both return the original y data, whereas for getFitted they return a leave-one-out cross-validation dataset
+#   randomForest, rfsrc: both return the original y data, whereas for getFitted they return a leave-one-out cross-validation dataset
 #   FNN: can be compared, but must be handled manually as it is the second nearest neighbour that will be closest
-#   class: cannot be compared for a similar reason to rF/rFSRC, but does not return the index matrix and so can't be done manually
+#   class: cannot be compared for a similar reason to randomForest/rfsrc, but does not return the index matrix and so can't be done manually
 #   kknn: as for class
 #   gbm: can be compared
 
@@ -109,7 +119,7 @@ test_that("getFitted and buildPredict", {
     if (verbose) cat ('\nClass: ',class(i)[[1]],'; Accuracy:',format(classAcc(gF,y)[[4]], digits=2))
     bP <- buildPredict(i)(i,getData(i))
 
-    if (class(i)[[1]] %in% c('rF','rFSRC')) {
+    if (class(i)[[1]] %in% c('randomForest','rfsrc')) {
       expect_equal(prob2class(bP), y)                           # The best value from bP should be the original data...
     } else if (class(i)[[1]] %in% 'fnn.FNN') {
       expect_equal(y[attr(bP,'nn.index')[,1]], y)               # The best value from bP should be the original data...
@@ -124,15 +134,14 @@ test_that("getFitted and buildPredict", {
 
 # Test whether predict still works with scaling
 nn.args  <- list(k=3, kmax=7, kernel=c('rectangular','optimal'), scale=T)
-testRun <- generateModels(data=data, modelTypes=c('fnn.FNN','fnn.class','kknn'),
-                          fx=fx, grouping=ecoGroup[['identity','transform']], echo=F, nn.args=nn.args)
+testRun <- generateModels(data=data, modelTypes=c('fnn.FNN','fnn.class','kknn'),fx=fx, grouping=ecoGroup[['identity','transform']], nn.args=nn.args)
 nn.args  <- list(k=3, kmax=7, kernel=c('rectangular','optimal'), scale=F)
 test_that("buildPredict", {
   if (verbose) cat("\nCheck buildPredict with scaling: ")
   for (i in testRun) {
     gF <- getFitted(i)
     expect_equal(class(gF), 'factor')
-    if (verbose) cat ('\nClass: ',class(i)[[1]],'; Accuracy:',format(classAcc(gF,y)[[4]], digits=2))
+    if (verbose) cat ('\nClass: ',class(i)[[1]],'; Accuracy:',format(classAcc(gF,y)$overallAcc, digits=2))
     bP <- buildPredict(i)(i,getData(i))
 
     if (class(i)[[1]] %in% 'fnn.FNN') {
@@ -151,17 +160,13 @@ data <- data.frame(y,x1,x2,x3)
 # Just check buildModel actually works and returns the correct type
 test_that("buildModel", {
   if (verbose) cat("\n\nBuilding models for continuous data: ")
-  for (i in c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm')) {
+  for (i in contModels) {
     if (verbose) print (paste0(i,'...'))
     ( i %in% class(buildModel(i,data,fx,args[[i]])) )
   }
 })
 
-args <- list('rF'        = rf.args,
-             'rFSRC'     = rf.args,
-             'gbm'       = gbm.args)
-testRun <- generateModels(data=data, modelTypes=c('rF','rFSRC','gbm'), # ??? Add svm when it works
-                          fx=fx, echo=F, rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args)
+testRun <- generateModels(data=data, modelTypes=contModels,fx=fx, echo=F, rf.args=rf.args, nn.args=nn.args, gbm.args=gbm.args)
 test_that("isCat/isCont", {
   for (i in testRun) {
     expect_true (isCont(i))
@@ -179,6 +184,11 @@ test_that("getClasses", {
     expect_error(getClasses(i))
   }
 })
+test_that("getProb", {
+  for (i in testRun) {
+    expect_error(getProb(testRun[[i]]))
+  }
+})
 test_that("getFormula", {
   for (i in testRun) {
     expect_equal(getFormula(i),fx)
@@ -187,7 +197,7 @@ test_that("getFormula", {
 })
 test_that("getArgs", {
   for (i in length(testRun)) {
-    expect_equal(getArgs(testRun[[i]]),args[[i]],label=class(testRun[[i]]))
+    expect_equal(getArgs(testRun[[i]]),args[[class(testRun[[i]])[1]]],label=class(testRun[[i]]))
     expect_equal(class(getArgs(testRun[[i]])),'list')
   }
 })
@@ -200,22 +210,16 @@ test_that("getArgs", {
 #     expect_equal(colnames(vimp)[-1], c(levels(y),if(class(i)[[1]]=='gbm') 'rel.inf'))
 #     expect_equal(rownames(vimp), c('x1','x2','x3'))
 #   }
-#   tmp <- generateModels(data[,1:3],c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),nn.args=list(scale=F),echo=F)
+#   tmp <- generateModels(data[,1:3],suppModels,nn.args=list(scale=F),echo=F)
 #   expect_error(getVIMP(tmp[['fnn.FNN']]),'Error: not able to compute post hoc VIMP on models with only two variables.')
 # })
-test_that("getProb", {
-  for (i in testRun) {
-    expect_error(getProb(testRun[[i]]))
-  }
-})
 
 # Cannot test getFitted with a random dataset... it would use the same code as the getFitted function! Just print the results, what type, and the error from the method. Can we do better???
 test_that("getFitted", {
   if (verbose) cat('\nChecking fitted\n')
-  # if (verbose) cat('Y: ',factorValues(y),'\n')
   for (i in testRun) {
     tmp <- getFitted(i)
-    if (verbose) print (paste0('Class: ',class(i)[[1]],'; Accuracy:',classAcc(tmp,y)[[4]]), digits=2 )
+    if (verbose) print (paste0('Class: ',class(i)[[1]],'; Accuracy:',classAcc(tmp,y)$overallAcc), digits=2 )
     expect_equal(class(tmp), 'numeric',info=class(i)[[1]])
     attributes(tmp) <- NULL
     # if (verbose) cat('Y:',factorValues(tmp),'\n')

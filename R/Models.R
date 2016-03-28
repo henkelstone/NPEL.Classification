@@ -2,17 +2,18 @@
 # Created 9.Oct.2015 from pre-existing code file started 6.Apr.2015
 
 ##### generateModels #####
-#' Generate Classification Models
+#' Generate Models
 #'
-#' This is a utility function to build a collection of classification models from a single input dataset.
+#' This function builds a collection of models from a single input dataset. It can handle either classification or regression data; that is,
+#' either categorical or continuous data.
 #'
-#' In the most basic sense, this function is a loop wrapping the code to generate a model. However, it also standardizes the inputs and
-#' generates meaningful default arguments for the different packages. It is possible to pass the function either a formula object, or a list
-#' of x and y names from which to generate the models---it will compute whichever is not specified.
+#' In the most basic sense, this function is a loop wrapping the code to generate a model. However, it also standardizes the inputs for all
+#' the model packages and generates meaningful default arguments for all the supported packages. It is possible to pass the function either
+#' a formula object, or a list of x and y names from which to generate the models---it will compute whichever is not specified.
 #'
-#' The various arguments are the most complex part of this function call. Reasonably meaningful default values are generated within the
-#' function, but the user always has the option to override them to customize the models. In most cases it is likely there will be at least
-#' a few arguments that will need to be provided. The argument lists are divided up by model \emph{type}, not package:
+#' The various arguments are the most complex part of this function. Reasonably meaningful default values are generated within the function,
+#' but the user always has the option to override them. In most cases it is likely there will be at least a few arguments that will need to
+#' be provided. The argument lists are divided up by model \emph{type}, not package:
 #' \itemize{
 #'   \item Random Forest---currently: \pkg{\link[randomForest]{randomForest}}, and \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}.
 #'   \itemize{
@@ -53,64 +54,53 @@
 #' }
 #'
 #' @param data the input data frame, see \code{\link{siteData}} for more information and an example dataset.
-#' @param modelTypes a character vector of model types to generate; one or more of c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm').
+#' @param modelTypes a character vector of model types to generate; one or more of \code{\link{suppModels}}.
 #' @param fx (optional) a formula object specifying the variable relationships; will be generated from x and y if unspecified.
-#' @param x (optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; required if fx is not provided.
-#' @param y (optional) the name of the column of the 'response' variable; defaults to first column; required if fx is not provided.
-#' @param grouping (optional) a transformation vector for input classes; if not provided, no grouping will be used. See \code{\link{ecoGroup}} for more information about this technique.
+#' @param x (optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; defaults to all columns
+#'   other than y if fx is also not provided.
+#' @param y (optional) the name of the column of the 'response' variable; defaults to first column if fx is also not provided. It can be
+#'   either categorical or continuous data, and it will attempt to coerce vectors of unknown types (e.g. boolean) into one of these two
+#'   groups, albiet in a rather rudimentary fashion. If it cannot succeed it will complain.
+#' @param grouping (optional) a transformation vector for input classes; if not provided, no grouping will be used. See
+#'   \code{\link{ecoGroup}} for more information about this technique.
 #' @param echo (optional) should the function report it's progress? Defaults to TRUE, but useful for automation.
-#' @param rf.args (optional) a list of arguments to pass to random forest type models; defaults will be generated for unspecified values
-#' @param nn.args (optional) a list of arguments to pass to nearest neighbour type models; defaults will be generated for unspecified values
-#' @param gbm.args (optional) a list of arguments to pass to gbm; defaults will be generated for unspecified values
-# @param svm.args (optional) a list of arguments to pass to svm; defaults will be generated for unspecified values
+#' @param rf.args (optional) a list of arguments to pass to random forest type models; defaults will be generated for unspecified values.
+#' @param nn.args (optional) a list of arguments to pass to nearest neighbour type models; defaults will be generated for unspecified
+#'   values.
+#' @param gbm.args (optional) a list of arguments to pass to gbm; defaults will be generated for unspecified values.
+# @param svm.args (optional) a list of arguments to pass to svm; defaults will be generated for unspecified values.
 #' @return A named list of models with attributes specifying the data, the function used, and the class.
 #'
 #' @seealso
 #' See the package help \pkg{\link{NPEL.Classification}} for an overview of the analysis process.
 #'
 #' For reading-in model data: \code{\link{readTile}}, \code{\link[maptools]{readShapePoints}}, and \code{\link{extractPoints}}; or the
-#'   \pkg{\link[raster]{raster}} package for reading-in raster files directly.
+#' \pkg{\link[raster]{raster}} package help for reading-in raster files directly.
 #'
 #' For examples on computing derived raster variables, e.g. NDVI, slope, etc. see the example code in \code{\link{egTile}}
 #'
 #' For examples on what to do with the generated models see: \code{\link{modelAccs}}, \code{\link{writeTile}}, and \code{\link{plotTile}}
 #'
-#' Also see any of the currently supported packages, currently: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
-#'   \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
+#' Also see any of the supported packages, currently: \pkg{\link[randomForest]{randomForest}},
+#' \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}, \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}},
+#' \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
 #'
 #' @examples
 #' data ('siteData')
 #' modelRun <- generateModels (data = siteData,
-#'                             modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+#'                             modelTypes = suppModels,
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
 #'                             y = 'ecoType',
 #'                             grouping = ecoGroup[['domSpecies','transform']],
 #'                             gbm.args = list (interaction.depth=7, shrinkage=0.005, cv.folds=0) )
 #' @export
 generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=NULL, echo=T, rf.args=NULL, nn.args=NULL, gbm.args=NULL) {
-  # The user can specify either a formula object or c(x,y); preprocess the variables to use and generate x, y, and fx as necessary
-  if (is.null(fx)) {
-    if (is.null(y)) y <- names(data)[1]
-  } else {
-    x <- attr(terms(fx),'term.labels')
-    y <- as.character(terms(fx)[[2]])
-  }
-
-  defaultCols <- names(data)
-  if (length(y) != 1) stop ("generateModels: specify only a single variable for y")
-  if (!y %in% defaultCols) stop ("generateModels: variable specified for y does not occur in the dataset; check the column names.")
-
+  # Preprocess and check fx, x, y
+  fx2vars(fx, x, y, names(data))
   if (isCat(data[,y])) {
     data[,y] <- trimLevels(as.factor(data[,y]))
   } else if (!isCont(data[,y])) stop("generateModels: specified y satisfied neither isCat nor isCont; check data class.")
-
-  defaultCols <- names(data)[-match(y,names(data))]
-  if (is.null(x)) cols <- defaultCols else {
-    if (sum(!x %in% defaultCols)) stop ("generateModels: a column specified for x does not occur in the dataset; trimming list to names that are present.")
-    cols <- x[x %in% defaultCols]
-  }
-  x <- cols[0 == apply (data[cols],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
-  if (is.null(fx)) fx <- formula(paste(y,"~",paste(x,collapse='+')))
+  x <- x[0 == apply (data[,x],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
 
   # Generate argument lists for each function type, i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -124,19 +114,22 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #  svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
 
   # Group the dataset if necessary, and trim it to contain only the used variables
+  if (!isCat(data[,y]) && !is.null(grouping)) {
+    warning("generateModels: cannot group a non-factor variable; ignoring grouping.")
+    grouping <- NULL
+  }
   if (!is.null(grouping)) {
-    if (!isCat(data[,y])) stop ("generateModels: cannot group a non-factor variable")
-    if (min(factorValues(data[,y])) < 1) stop ("generateModels: cannot group factors with indices less than 1")
+    if (min(factorValues(data[,y])) < 1) stop("generateModels: cannot group factors with indices less than 1.")
     data[,y] <- sortLevels(as.factor( grouping[factorValues(data[,y])] ))
   }
   data <- data[,c(y,x)]
 
   # Build the models
-  args <- list('rF'=rf.args,'rFSRC'=rf.args,'fnn.FNN'=nn.args,'fnn.class'=nn.args,'kknn'=nn.args,'gbm'=gbm.args) #,'svm'=svm.args) # A lookup table for matching arguments with classes
+  args <- list('randomForest'=rf.args,'rfsrc'=rf.args,'fnn.FNN'=nn.args,'fnn.class'=nn.args,'kknn'=nn.args,'gbm'=gbm.args) #,'svm'=svm.args) # A lookup table for matching arguments with classes
   retObj <- list()
   for (i in modelTypes) {
-    if (i %in% c('fnn.FNN','fnn.class','kknn') && !isCat(data[,y])) {
-      warning(paste0("generateModels: ",i," requires categorical data; build a classifier based site ID and use impute??? to calculate the result. Removing model.")) # can we make this process automatic?
+    if ( !(i %in% contModels) && !isCat(data[,y]) ) {
+      warning(paste0("generateModels: ",i," requires categorical data; build a classifier based site ID and use impute to calculate the result. Removing model."))
       modelTypes <- modelTypes[i != modelTypes]
     } else {
       if (echo) print (paste0("Generating: ",i))
@@ -145,89 +138,6 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   }
   names (retObj) <- modelTypes
   return ( retObj )
-}
-
-##### classAcc #####
-#' Generates basic error statistics for a classification model
-#'
-#' A common question is what is the accuracy of the model we have created; this function aims to provide information towards answering that
-#' question. There are a number of different metrics used, this one computes the out-of-bag metrics (OOB): the confusion matrix, the user
-#' accuracy, the producer accuracy, the overall OOB accuracy, and the Kappa statistic; see details below.
-#'
-#' The metrics returned from classAcc are:
-#' \itemize{
-#'   \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
-#'     predicted values as rows and actual values as columns.
-#'   \item \code{userAcc} a data frame in which each column represents the user accuracy for a given model, and rows are the accuracies for
-#'     that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
-#'     is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
-#'     the number sites that the model predicted to be in that class.
-#'   \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies for
-#'      that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called omission error,
-#'      is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the number that are
-#'      actually of that class.
-#'   \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
-#'     predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
-#'     chance, standardized by unity less the probability by chance alone.
-#'      \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
-#' }
-#'
-#' @param pred the predicted classes.
-#' @param valid the validation classes.
-#' @param digits (optional) the number of digits to output for the error; defaults to 3.
-#' @param classNames (optional) a character vector of class names (strings). It is required because in the grouped models, there are no
-#'   meaningful classnames integral to the model. What is provided here is subsetted to include only the levels that are actually present in
-#'   the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.
-#' @return Accuracy data as a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
-#'   \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
-#'
-#' @examples
-#' data ('siteData')
-#' modelRun <- generateModels (data = siteData,
-#'                             modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
-#'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
-#'                             y = 'ecoType',
-#'                             grouping = ecoGroup[['domSpecies','transform']])
-#' model <- modelRun$rF
-#' cat(search())
-#' mAcc <- classAcc (getFitted(model),getData(model)$ecoType,
-#'                   classNames=ecoGroup[['identity','labels']])
-#' str (mAcc,1)
-#' @export
-classAcc <- function (pred, valid, digits=3, classNames=NULL) {
-  if (isCat(pred)) { classAcc.Cat (pred, valid, digits, classNames) }
-  else if (isCont(pred)) { classAcc.Cont (pred, valid, digits, classNames) }
-  else stop("classAcc: predictor satisfied neither categorical or continuous criteria; check data.")
-}
-classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
-  if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
-  pred <- trimLevels(pred);          valid <- trimLevels(valid)
-  pred <- mergeLevels(pred,valid);   valid <- mergeLevels(valid,pred)
-
-  conf <- table(pred,valid)                                   # Confusion matrix
-  userTot <- apply (conf,1,sum)
-  prodTot <- apply (conf,2,sum)
-  Tot <- sum(conf)
-
-  userAcc <- diag(conf)/userTot                               # User accuracy rates--
-  prodAcc <- diag(conf)/prodTot                               # Producer accuracy rates--
-  overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy rate
-  kappa <- (Tot*sum(diag(conf)) - sum(userTot*prodTot)) / (Tot^2 - sum(userTot*prodTot))
-
-  dimnames(conf) <- list(classNames,classNames)
-  names (userAcc) <- classNames
-  names (prodAcc) <- classNames
-  return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, overallAcc=overallAcc, kappa=kappa))
-}
-classAcc.Cont <- function (pred, valid, digits, classNames) {
-  # summary (lm('y~x',data.frame(x=valid,y=pred)))
-  SS.res <- sum( (pred-valid)^2 )
-  SS.tot <- sum((valid-mean(valid))^2)
-  rsq <- 1-SS.res/SS.tot
-  mse <- mean(SS.res)/length(pred)
-  # prsq <- 1-mse/var(valid)                                    # Pseudo R-square as reported by randomForest
-  return (list(overallAcc=rsq, mse=mse))
 }
 
 ##### npelVIMP #####
@@ -294,12 +204,12 @@ classAcc.Cont <- function (pred, valid, digits, classNames) {
 #' @examples
 #' data ('siteData')
 #' modelRun <- generateModels (data = siteData,
-#'                             modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+#'                             modelTypes = suppModels,
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
 #'                             y = 'ecoType',
 #'                             grouping = ecoGroup[['domSpecies','transform']])
-#' npelVIMP (modelRun$rFSRC,calc=F)
-#' npelVIMP (modelRun$rFSRC,calc=T)
+#' npelVIMP (modelRun$rfsrc,calc=F)
+#' npelVIMP (modelRun$rfsrc,calc=T)
 #' @export
 npelVIMP <- function (model, calc=F, echo=T) {
   # If we don't need to calculate, check if this is a model that contains VIMP and return it, otherwise continue...
@@ -389,10 +299,159 @@ npelVIF <- function (fx, data) {
   return (list(vif=1/(1-rSq), rSquared=rSq, coeff=est, stdErr=stdErr, t.value=t.value, p.value=p.value))
 }
 
-##### modelAccs #####
-#' Generate accuracy statistics and variable importance for a list of models
+##### classAcc #####
+#' Generates basic error statistics for a model
 #'
-#' Given a block (list) of models, this function runs \code{\link{classAcc}} and the \code{\link{npelVIMP}} metric on each. See details for a
+#' A reasonable question is: what is the accuracy of the model we have created; this function aims to provide information towards answering
+#' that question. There are a number of different metrics used depending primarily on whether the model encodes categorical or continuous
+#' data---see below for details.
+#'
+#' The metrics returned for \emph{categorical} models are:
+#' \itemize{
+#'   \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
+#'     predicted values as rows and actual values as columns.
+#'   \item \code{userAcc} a data frame in which each column represents the user accuracy for a given model, and rows are the accuracies for
+#'     that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
+#'     is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
+#'     the number sites that the model predicted to be in that class.
+#'   \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies
+#'     for that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called
+#'     omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the
+#'     number that are actually of that class.
+#'   \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
+#'     predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
+#'     chance, standardized by unity less the probability by chance alone.
+#'       \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
+#' }
+#' The metrics returned for \emph{continuous} models are:
+#' \itemize{
+#'   \item \code{overallAcc} is the overall r-squared, computed by \eqn{1 - \frac{SS.residual}{SS.total}}{1 - SS.residual/SS.total}
+#'   \item \code{mse} is the raw mean squared error, computed by \eqn{mean(SS.residual)/N}
+#' }
+#'
+#' @param pred the predicted classes.
+#' @param valid the validation classes.
+#' @param digits (optional) the number of digits to output for the error; defaults to 3.
+#' @param classNames (optional) a character vector of class names (strings). It is necessary because in grouped models, there are no
+#'   meaningful classnames stored internal to the model. classNames will be subsetted to include only the levels that are actually present
+#'   in the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.
+#' @return Note: this function returns different data depending on the whether the model is categorical or continuous:
+#' \itemize{
+#'   \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
+#'     \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
+#'   \item \code{continuous} a two element names list: \code{overallAcc} = overall accuracy, \code{mse} = mean squared error
+#' }
+#'
+#' @seealso
+#'   \code{\link{generateModels}} for creating models; \code{\link{isCat}}, \code{\link{isCont}} for how categorical/continuous type is evaluated.
+#' @examples
+#' data ('siteData')
+#' modelRun <- generateModels (data = siteData,
+#'                             modelTypes = suppModels,
+#'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                             y = 'ecoType',
+#'                             grouping = ecoGroup[['domSpecies','transform']])
+#' model <- modelRun$randomForest
+#' mAcc <- classAcc (getFitted(model),getData(model)[['ecoType']],
+#'                   classNames=ecoGroup[['domSpecies','labels']])
+#' str (mAcc,1)
+#'
+#' modelRun <- generateModels (data = siteData,
+#'                             modelTypes = contModels,
+#'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                             y = 'easting')
+#' model <- modelRun$randomForest
+#' mAcc <- classAcc (getFitted(model),getData(model)[['easting']])
+#' str (mAcc,1)
+#' @export
+classAcc <- function (pred, valid, digits=3, classNames=NULL) {
+  if (isCat(pred)) { classAcc.Cat (pred, valid, digits, classNames) }
+  else if (isCont(pred)) { classAcc.Cont (pred, valid, digits, classNames) }
+  else stop("classAcc: predictor satisfied neither categorical or continuous criteria; check data.")
+}
+classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
+  pred <- trimLevels(pred);          valid <- trimLevels(valid)
+  pred <- mergeLevels(pred,valid);   valid <- mergeLevels(valid,pred)
+  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+  if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
+
+  conf <- table(pred,valid)                                   # Confusion matrix
+  userTot <- apply (conf,1,sum)
+  prodTot <- apply (conf,2,sum)
+  Tot <- sum(conf)
+
+  userAcc <- diag(conf)/userTot                               # User accuracy rates
+  prodAcc <- diag(conf)/prodTot                               # Producer accuracy rates
+  overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy rate
+  kappa <- (Tot*sum(diag(conf)) - sum(userTot*prodTot)) / (Tot^2 - sum(userTot*prodTot))
+
+  dimnames(conf) <- list(classNames,classNames)
+  names (userAcc) <- classNames
+  names (prodAcc) <- classNames
+  return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, overallAcc=overallAcc, kappa=kappa))
+}
+classAcc.Cont <- function (pred, valid, digits, classNames) {
+  SS.res <- sum( (pred-valid)^2 )
+  SS.tot <- sum((valid-mean(valid))^2)
+  rsq <- 1-SS.res/SS.tot
+  mse <- mean(SS.res)/length(pred)
+  # summary (lm('y~x',data.frame(x=valid,y=pred)))
+  # prsq <- 1-mse/var(valid)                                    # Pseudo R-square as reported by randomForest
+  return (list(overallAcc=rsq, mse=mse))
+}
+
+##### validate #####
+#' Check the accuracy of a model using independent validation data
+#'
+#' This function is a wrapper for classAcc that, given an independent validation dataset, uses the model to come up with new predicted
+#' values. It then calls \code{\link{classAcc}} with these two validation datasets (the one generated by the model and the true values) to
+#' report class accuracies.
+#'
+#' @param model the model to test.
+#' @param valid the validation dataset; must contain all the parameters used in the model.
+#' @param ... other variables to pass to \code{\link{classAcc}}.
+#'
+#' @return Returns the result from \code{\link{classAcc}}
+#' @seealso \code{\link{classAcc}}
+#'
+#' @examples
+#' data ('siteData')
+#' # With categorical data
+#' gen <- sample(1:nrow(siteData),floor(nrow(siteData)*0.5))
+#' modelRun <- generateModels(data = siteData[sort(gen),],
+#'                            modelTypes = suppModels,
+#'                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                            y = 'ecoType',
+#'                            grouping = ecoGroup[['identity','transform']],
+#'                            echo = FALSE)
+#' valid <- siteData[-gen,]
+#' valid$ecoType <- as.factor(ecoGroup[['identity','transform']][valid$ecoType])
+#' validate(modelRun[[2]],valid)
+#' validModels(modelRun,valid)
+#'
+#' # With continuous data
+#' gen <- sample(1:nrow(siteData),floor(nrow(siteData)*0.5))
+#' modelRun <- generateModels(data = siteData[sort(gen),],
+#'                            modelTypes = contModels,
+#'                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                            y = 'easting',
+#'                            echo = FALSE)
+#' valid <- siteData[-gen,]
+#' validate(modelRun[[2]],valid)
+#' modelsValid(modelRun,valid)
+#' @export
+validate <- function(model, valid,...){
+  x <- y <- NULL
+  fx2vars (getFormula(model),x,y,names=names(valid)) #??? test that this throws an error if a column is missing
+  res <- buildPredict(model)(model, valid[,x])                # rFSRC is cranky about types and levels in y variables so just don't supply it as it isn't necessary
+  if (isCat(model)) res <- suppressWarnings(prob2class(res))  # prob2class throws an warning if there is only one column; this should only occur if model is FNN
+  classAcc(res,valid[,y],...)
+}
+
+##### modelAccs #####
+#' Generate accuracy statistics and variable importance for a list of models; a wrapper for \code{classAcc}.
+#'
+#' Given a list of models, this function runs \code{\link{classAcc}} and \code{\link{npelVIMP}} on each. See details for a
 #' description of how the data is encapsulated for return.
 #'
 #' The function returns a named list of the various accuracy and variable importance metrics:
@@ -412,75 +471,218 @@ npelVIF <- function (fx, data) {
 #' @note
 #'   See the details section of \code{\link{npelVIMP}} for a discussion of the limitations of our VIMP metric.
 #'
-#' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate
-#' @param classNames (optional) class names to attach to the tables
-#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false
-#' @param echo (optional) should the function print out it's progress, defaults to false
-#' @return A named list of accuracy and VIMP data: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy, \code{prodAcc} =
-#'   producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa, \code{VIMP} = VIMP matrices, \code{VIMPoverall} =
-#'   overall VIMP
-#' @seealso \code{\link{classAcc}} for more on class level accuracies, and \code{\link{npelVIMP}} for more on how that metric is computed and it's limitations.
+#' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate.
+#' @param classNames (optional) class names to attach to the tables; only used if the data is categorical.
+#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false.
+#' @param echo (optional) should the function print out it's progress, defaults to false.
+#'
+#' @return This function returns different values depending on whether the model is categorical or continuous. For categorical data it
+#'   returns a named list of accuracy and VIMP statistics:
+#'   \itemize{
+#'     \item \code{confMatrix} = confusion matrix
+#'     \item \code{userAcc} = user accuracy
+#'     \item \code{prodAcc} = producer accuracy
+#'     \item \code{overallAcc} = overall accuracy
+#'     \item \code{kappa} = kappa
+#'     \item \code{VIMP} = VIMP matrices
+#'     \item \code{VIMPoverall} = overall VIMP
+#'   }
+#' For continuous data:
+#'   \itemize{
+#'     \item \code{overallAcc} = overall r-squared
+#'     \item \code{mse} = mean squared error
+#'   }
+#' @seealso \code{\link{classAcc}} for more on continuous and categorical accuracies, and \code{\link{npelVIMP}} for more on how that metric
+#'   is computed and it's limitations. Also see \code{\link{modelsValid}} for a function to compute accuracies using an independent dataset.
 #'
 #' @examples
+#' # Categorical Data
 #' data ('siteData')
 #' modelRun <- generateModels (data = siteData,
-#'                             modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+#'                             modelTypes = suppModels,
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
 #'                             y = 'ecoType',
-#'                             grouping = ecoGroup[['domSpecies','transform']])
-#' mE <- modelAccs (modelRun,ecoGroup[['identity','labels']])
+#'                             grouping = ecoGroup[['domSpecies','transform']],
+#'                             echo = FALSE)
+#' mE <- modelAccs (modelRun, ecoGroup[['domSpecies','labels']])
+#' str(mE,1)
+#'
+#' # Contiuous Data
+#' modelRun <- generateModels (data = siteData,
+#'                             modelTypes = contModels,
+#'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                             y = 'easting',
+#'                             echo = FALSE)
+#' mE <- modelAccs (modelRun)
+#' str(mE,1)
 #' @export
 modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
-  if (class(models) != 'list') models <- list (models)                # In case it is only a single model, wrap it in a list
-  if (isCat(models[[1]])) { modelAccs.Cat(models, classNames, calc, echo) }
-  else if (isCont(models[[1]])) { modelAccs.Cont(models, calc, echo) }
-  else stop("modelAccs: dependent variable satisfied neither categorical or continuous criteria; check data.")
+  if (!'list' %in% class(models)[[1]]) models <- list (models)                # In case it is only a single model, wrap it in a list
+  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=NULL, func=classAcc, VIMP=TRUE, calc=calc, classNames=classNames, echo=echo) }
+  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=NULL, func=classAcc, VIMP=TRUE, calc=calc, echo=echo) }
+  else stop("modelAccs: model satisfied neither categorical or continuous criteria.")
 }
-modelAccs.Cont <- function (models, calc, echo) {
-  y <- as.character(getFormula(models[[1]])[[2]])
+
+##### modelsValid #####
+#' Generate validation statistics for a list of models; a wrapper for \code{validate}.
+#'
+#' Given a list of models, this function runs \code{\link{validate}} on each. See details for a description of how the data is encapsulated
+#' for return.
+#'
+#' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate.
+#' @param valid a validation dataset with which to test the accuracy of the models provided.
+#' @param classNames (optional) class names to attach to the tables; only used if the data is categorical.
+#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false
+#' @param echo (optional) should the function print out it's progress, defaults to false
+#'
+#' @return As with \code{\link{modelAccs}}, this function returns different values depending on whether the model is categorical or
+#'   continuous. For categorical data it returns a named list of accuracy statistics:
+#'   \itemize{
+#'     \item \code{confMatrix} = confusion matrix
+#'     \item \code{userAcc} = user accuracy
+#'     \item \code{prodAcc} = producer accuracy
+#'     \item \code{overallAcc} = overall accuracy
+#'     \item \code{kappa} = kappa
+#'   }
+#' For continuous data:
+#'   \itemize{
+#'     \item \code{overallAcc} = overall r-squared
+#'     \item \code{mse} = mean squared error
+#'   }
+#' @seealso \code{\link{classAcc}} for more on the computation of continuous and categorical accuracies, and \code{\link{modelAccs}} for the
+#'   corresponding function that will compute accuracy based on the dataset used for model building.
+#'
+#' @examples
+#' # With categorical data
+#' data ('siteData')
+#' gen <- sample(1:nrow(siteData),floor(nrow(siteData)*0.5))
+#' modelRun <- generateModels(data = siteData[sort(gen),],
+#'                            modelTypes = suppModels,
+#'                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                            y = 'ecoType',
+#'                            grouping = ecoGroup[['identity','transform']],
+#'                            echo = FALSE)
+#' valid <- siteData[-gen,]
+#' valid$ecoType <- as.factor(ecoGroup[['identity','transform']][valid$ecoType])
+#' mV <- modelsValid(modelRun,valid)
+#' str(mV,2)
+#'
+#' # With continuous data
+#' gen <- sample(1:nrow(siteData),floor(nrow(siteData)*0.5))
+#' modelRun <- generateModels(data = siteData[sort(gen),],
+#'                            modelTypes = contModels,
+#'                            x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
+#'                            y = 'easting',
+#'                            echo = FALSE)
+#' valid <- siteData[-gen,]
+#' mV <- modelsValid(modelRun,valid)
+#' str(mV,2)
+#' @export
+modelsValid <- function(models, valid, classNames=NULL, calc=F, echo=T){
+  if (!'list' %in% class(models)[[1]]) models <- list (models)                # In case it is only a single model, wrap it in a list
+  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=valid, validate, VIMP=FALSE, calc=FALSE, classNames=classNames, echo=echo) }
+  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=valid, func=validate, VIMP=FALSE, calc=FALSE, echo=echo) }
+  else stop("validModels: model satisfied neither categorical or continuous criteria.")
+}
+
+
+##### wrapAccs.Cat #####
+#' Thin wrappers to package up categorical/continous accuracies/validation data for a group of models.
+#'
+#' These functions are intended for internal use---as such no defaults are provided and there is little to no internal parameter
+#' checking. Using this function it is possible, however, to do things like recover VIMP data using a validating dataset, which is not
+#' possible using the default package functions.
+#'
+#' @param models the model group to process.
+#' @param valid validation data if relevant, i.e. if func = 'validate'.
+#' @param func the function to use to evaluate accuracy: classAcc or validate.
+#' @param VIMP should we add the VIMP data.
+#' @param calc should we compute the VIMP metric from scratch, only referenced if VIMP = TRUE.
+#' @param classNames the classnames.
+#' @param echo should the function print out processing messages as it runs.
+#'
+#' @return a the class that \code{\link{modelAccs}} or \code{\link{modelValid}} needs.
+#' @export
+wrapAccs.Cat  <- function(models, valid, func, VIMP, calc, classNames, echo) {
+  y <- NULL
+  fx2vars(getFormula(models[[1]]),y=y)
+  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+
+  userAcc <- prodAcc <- VIMPoverall <- confMatrix <- kappa <- outVIMP <- colNames <- NULL
+  for (i in models) {
+    if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
+    colNames <- c(colNames, class(i)[[1]])
+
+    if (substitute(func) == 'classAcc') { tmp <- classAcc(getFitted(i), getData(i)[,y], classNames=classNames) }
+    if (substitute(func) == 'validate') { tmp <- validate(i, valid) }
+
+    confMatrix <- c(confMatrix, list(tmp$confMatrix))
+    user <- c(tmp$userAcc,tmp$overallAcc);    user <- data.frame(class=as.numeric(names(user)),user)
+    prod <- c(tmp$prodAcc,tmp$overallAcc);    prod <- cbind (class=as.numeric(names(prod)),prod)
+    if (is.null(userAcc)) {
+      userAcc <- user
+      prodAcc <- prod
+    } else {
+      userAcc <- merge(userAcc, user, by='class', all=T)  # Cannot just cbind as they might not have the same number of classes...
+      prodAcc <- merge(prodAcc, prod, by='class', all=T)
+      userAcc['Row.names'] <- prodAcc['Row.names'] <- NULL
+      names(userAcc) <- names(prodAcc) <- c('class',colNames)
+    }
+    kappa <- c(kappa,tmp$kappa)
+
+    if (VIMP) {
+      tmp <- npelVIMP (i,calc=calc,echo=echo)
+      cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !calc) 1 else 0 ))
+
+      classN <- classNames
+      if (!is.null(classN) && length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
+      if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
+      colnames(tmp)[cols] <- classN
+
+      outVIMP <- c(outVIMP, list(tmp[,2:ncol(tmp)]))
+      VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
+    }
+  }
+  l <- length(userAcc$class); rownames(userAcc) <- c(userAcc$class[1:(l-1)],'overall')
+  l <- length(prodAcc$class); rownames(prodAcc) <- c(prodAcc$class[1:(l-1)],'overall')
+  userAcc <- userAcc[,-1]
+  prodAcc <- prodAcc[,-1]
+  names(userAcc) <- names(prodAcc) <- names(confMatrix) <- names(kappa) <- colNames
+
+  if (VIMP) {
+    names(outVIMP) <- names(VIMPoverall) <- colNames
+    return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=outVIMP, VIMPoverall=VIMPoverall))
+  } else {
+    return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa))
+  }
+}
+#' @rdname wrapAccs.Cat
+#' @export
+wrapAccs.Cont <- function(models, valid, func, VIMP, calc, echo) {
+  x <- y <- NULL
+  fx2vars(getFormula(models[[1]]),x=x,y=y)
   overallAcc <- VIMPoverall <- colNames <- NULL
   for (i in models) {
     if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
-    tmp <- classAcc(getFitted(i), getData(i)[,y])
     colNames <- c(colNames, class(i)[[1]])
+
+    if (substitute(func) == 'classAcc') { tmp <- classAcc(getFitted(i), getData(i)[,y]) }
+    if (substitute(func) == 'validate') { tmp <- validate(i, valid) }
     overallAcc <- rbind(overallAcc, data.frame(overallAcc=tmp$overallAcc, mse=tmp$mse))
 
-    tmp <- npelVIMP (i, calc=calc, echo=echo)
-    VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
+    if (VIMP) {
+      tmp <- npelVIMP (i, calc=calc, echo=echo)
+      VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
+    }
   }
   overallAcc <- as.data.frame(overallAcc)
-  rownames(overallAcc) <- names(VIMPoverall) <- colNames
-  rownames(VIMPoverall) <- attr(terms(getFormula(models[[1]])),'term.labels')
-  return (list(overallAcc=overallAcc, VIMPoverall=VIMPoverall))
-}
-modelAccs.Cat  <- function (models, classNames, calc, echo) {
-  y <- as.character(getFormula(models[[1]])[[2]])
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
-  if (is.null(classNames)) classNames <- 1:max(as.numeric(levels(getData(models[[1]])[,y])))
-
-  userAcc <- prodAcc <- VIMPoverall <- confMatrix <- kappa <- VIMP <- colNames <- NULL
-  for (i in models) {
-    if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
-    tmp <- classAcc(getFitted(i), getData(i)[,y], classNames=classNames)
-    colNames <- c(colNames, class(i)[[1]])
-    confMatrix <- c(confMatrix, list(tmp$confMatrix))
-    userAcc <- as.data.frame(cbind(userAcc, c(tmp$userAcc,overall=tmp$overallAcc)))
-    prodAcc <- as.data.frame(cbind(prodAcc, c(tmp$prodAcc,overall=tmp$overallAcc)))
-    kappa <- c(kappa,tmp$kappa)
-
-    tmp <- npelVIMP (i,calc=calc,echo=echo)
-    cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !calc) 1 else 0 ))
-
-    classN <- classNames
-    if (length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
-    if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
-    colnames(tmp)[cols] <- classN
-
-    VIMP <- c(VIMP, list(tmp[,2:ncol(tmp)]))
-    VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
+  rownames(overallAcc) <- colNames
+  if (VIMP) {
+    colnames(VIMPoverall) <- colNames
+    rownames(VIMPoverall) <- x
+    return (list(overallAcc=overallAcc, VIMPoverall=VIMPoverall))
+  } else {
+    return (list(overallAcc=overallAcc))
   }
-  names(userAcc) <- names(prodAcc) <- names(VIMPoverall) <- colNames
-  names(confMatrix) <- names(kappa) <- names(VIMP) <- colNames
-  return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=VIMP, VIMPoverall=VIMPoverall))
 }
 

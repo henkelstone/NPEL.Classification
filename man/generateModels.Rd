@@ -2,7 +2,7 @@
 % Please edit documentation in R/Models.R
 \name{generateModels}
 \alias{generateModels}
-\title{Generate Classification Models}
+\title{Generate Models}
 \usage{
 generateModels(data, modelTypes, fx = NULL, x = NULL, y = NULL,
   grouping = NULL, echo = T, rf.args = NULL, nn.args = NULL,
@@ -11,38 +11,44 @@ generateModels(data, modelTypes, fx = NULL, x = NULL, y = NULL,
 \arguments{
 \item{data}{the input data frame, see \code{\link{siteData}} for more information and an example dataset.}
 
-\item{modelTypes}{a character vector of model types to generate; one or more of c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm').}
+\item{modelTypes}{a character vector of model types to generate; one or more of \code{\link{suppModels}}.}
 
 \item{fx}{(optional) a formula object specifying the variable relationships; will be generated from x and y if unspecified.}
 
-\item{x}{(optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; required if fx is not provided.}
+\item{x}{(optional) vector names of 'predictor' variables to use; defaults to all columns less the y variable; defaults to all columns
+other than y if fx is also not provided.}
 
-\item{y}{(optional) the name of the column of the 'response' variable; defaults to first column; required if fx is not provided.}
+\item{y}{(optional) the name of the column of the 'response' variable; defaults to first column if fx is also not provided. It can be
+either categorical or continuous data, and it will attempt to coerce vectors of unknown types (e.g. boolean) into one of these two
+groups, albiet in a rather rudimentary fashion. If it cannot succeed it will complain.}
 
-\item{grouping}{(optional) a transformation vector for input classes; if not provided, no grouping will be used. See \code{\link{ecoGroup}} for more information about this technique.}
+\item{grouping}{(optional) a transformation vector for input classes; if not provided, no grouping will be used. See
+\code{\link{ecoGroup}} for more information about this technique.}
 
 \item{echo}{(optional) should the function report it's progress? Defaults to TRUE, but useful for automation.}
 
-\item{rf.args}{(optional) a list of arguments to pass to random forest type models; defaults will be generated for unspecified values}
+\item{rf.args}{(optional) a list of arguments to pass to random forest type models; defaults will be generated for unspecified values.}
 
-\item{nn.args}{(optional) a list of arguments to pass to nearest neighbour type models; defaults will be generated for unspecified values}
+\item{nn.args}{(optional) a list of arguments to pass to nearest neighbour type models; defaults will be generated for unspecified
+values.}
 
-\item{gbm.args}{(optional) a list of arguments to pass to gbm; defaults will be generated for unspecified values}
+\item{gbm.args}{(optional) a list of arguments to pass to gbm; defaults will be generated for unspecified values.}
 }
 \value{
 A named list of models with attributes specifying the data, the function used, and the class.
 }
 \description{
-This is a utility function to build a collection of classification models from a single input dataset.
+This function builds a collection of models from a single input dataset. It can handle either classification or regression data; that is,
+either categorical or continuous data.
 }
 \details{
-In the most basic sense, this function is a loop wrapping the code to generate a model. However, it also standardizes the inputs and
-generates meaningful default arguments for the different packages. It is possible to pass the function either a formula object, or a list
-of x and y names from which to generate the models---it will compute whichever is not specified.
+In the most basic sense, this function is a loop wrapping the code to generate a model. However, it also standardizes the inputs for all
+the model packages and generates meaningful default arguments for all the supported packages. It is possible to pass the function either
+a formula object, or a list of x and y names from which to generate the models---it will compute whichever is not specified.
 
-The various arguments are the most complex part of this function call. Reasonably meaningful default values are generated within the
-function, but the user always has the option to override them to customize the models. In most cases it is likely there will be at least
-a few arguments that will need to be provided. The argument lists are divided up by model \emph{type}, not package:
+The various arguments are the most complex part of this function. Reasonably meaningful default values are generated within the function,
+but the user always has the option to override them. In most cases it is likely there will be at least a few arguments that will need to
+be provided. The argument lists are divided up by model \emph{type}, not package:
 \itemize{
   \item Random Forest---currently: \pkg{\link[randomForest]{randomForest}}, and \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}.
   \itemize{
@@ -80,7 +86,7 @@ a few arguments that will need to be provided. The argument lists are divided up
 \examples{
 data ('siteData')
 modelRun <- generateModels (data = siteData,
-                            modelTypes = c('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            modelTypes = suppModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
                             grouping = ecoGroup[['domSpecies','transform']],
@@ -90,13 +96,14 @@ modelRun <- generateModels (data = siteData,
 See the package help \pkg{\link{NPEL.Classification}} for an overview of the analysis process.
 
 For reading-in model data: \code{\link{readTile}}, \code{\link[maptools]{readShapePoints}}, and \code{\link{extractPoints}}; or the
-  \pkg{\link[raster]{raster}} package for reading-in raster files directly.
+\pkg{\link[raster]{raster}} package help for reading-in raster files directly.
 
 For examples on computing derived raster variables, e.g. NDVI, slope, etc. see the example code in \code{\link{egTile}}
 
 For examples on what to do with the generated models see: \code{\link{modelAccs}}, \code{\link{writeTile}}, and \code{\link{plotTile}}
 
-Also see any of the currently supported packages, currently: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
-  \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
+Also see any of the supported packages, currently: \pkg{\link[randomForest]{randomForest}},
+\pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}, \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}},
+\pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
 }
 

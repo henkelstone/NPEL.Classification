@@ -19,12 +19,14 @@ extractPoints(rData, vData, locs, na.omit = T)
 a data frame with the combined data: the original vector data with the extracted raster data columns appended
 }
 \description{
-This function looks up each point in a raster (point) dataset and returns the corresponding data from a raster.* object using sp::SpatialPoints. It is used to
-build combined remote-sensed and field data that can be input into a classification model.
+This function looks up each point in a raster (point) dataset and returns the corresponding data from a raster.* object using
+sp::SpatialPoints. It is used to build combined remote-sensed and field data that can be input into a classification model.
 }
 \examples{
-vData <- maptools::readShapePoints (system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+library (maptools)
+vData <- readShapePoints (system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
+detach ('package:maptools',unload=T)
 }
 \seealso{
 \code{\link{readTile}} for reading in a collection of geoTiff's, \code{\link{egTile}} for more information on the raster format

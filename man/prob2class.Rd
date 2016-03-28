@@ -2,7 +2,7 @@
 % Please edit documentation in R/Util.R
 \name{prob2class}
 \alias{prob2class}
-\title{Convert a matrix of probabilities to a vector or classes}
+\title{Convert a matrix of probabilities to a vector of classes}
 \usage{
 prob2class(prob, classes = colnames(prob), threshold = 0)
 }
@@ -11,13 +11,13 @@ prob2class(prob, classes = colnames(prob), threshold = 0)
 
 \item{classes}{(optional) the classes represented by \code{prob}. Must match the number of columns in \code{prob}.}
 
-\item{threshold}{(optional) if the probability is less than this value, output 0 for the class as we don't have
+\item{threshold}{(optional) if the probability is less than this value, output 0 for that point as we don't have
 confidence in the result.}
 }
 \value{
 A factor variable containing the most probable class indicated by the probability table. Note that if this
   function is passed a matrix with only one column or a vector of values, it will return a vector of the values.
-  Care should be taken as this function does not always return the same type (factor)!
+  Care should be taken as this function does not always return the same type.
 }
 \description{
 Some model types and packages, when asked to predict new values, return probabilite that a given class will occur.
@@ -26,7 +26,7 @@ This function converts this format into a vector of classes (type factor).
 \examples{
 data ('siteData')
 modelRun <- generateModels (data = siteData,
-                            modelTypes = c ('rF','rFSRC','fnn.FNN','fnn.class','kknn','gbm'),
+                            modelTypes = suppModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
                             grouping = ecoGroup[['domSpecies','transform']])

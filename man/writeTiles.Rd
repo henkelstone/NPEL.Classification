@@ -4,13 +4,13 @@
 \alias{writeTiles}
 \title{Write multiple output tiles}
 \usage{
-writeTiles(inRdata, models, base, path = "./", extension = ".tif",
+writeTiles(models, inRdata, base, path = "./", extension = ".tif",
   echo = T, ...)
 }
 \arguments{
-\item{inRdata}{is the image from which to generate the rendering, which can be read in using \code{\link{readTile}}}
-
 \item{models}{a list of model names, the standard output from \code{\link{generateModels}}}
+
+\item{inRdata}{is the image from which to generate the rendering, which can be read in using \code{\link{readTile}}}
 
 \item{base}{the base portion of the filename}
 
@@ -23,7 +23,7 @@ writeTiles(inRdata, models, base, path = "./", extension = ".tif",
 \item{...}{other parameter(s) to pass on to \code{\link{writeTile}}, e.g. threshold, labels, et.c}
 }
 \value{
-invisibly returns the time it took each model output to execute
+Invisibly returns the time it took each model output to execute
 }
 \description{
 A utility function to output all the possible model renderings model list. It builds the output filename as follows: <path><base><model class><ext>
@@ -40,7 +40,7 @@ single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes 
 single tile. It is recommended that writeTiles be reserved for outputing comparison tiles of a smaller size, or subsampled data.
 }
 \examples{
-# See the examples at writeTile
+# See the examples at writeTile.
 }
 \seealso{
 \code{\link{writeTile}} for the engine that does the rendering

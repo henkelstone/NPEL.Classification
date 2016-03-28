@@ -2,8 +2,7 @@
 % Please edit documentation in R/OOP_util.R
 \name{getProb}
 \alias{getProb}
-\title{Extract the probabilies (accuracies) of the internal model used to fit the data, that is, the probabilities of the
-fitted data.}
+\title{Extract the probabilies (confidence) from a model; the probabilities of class occurence.}
 \usage{
 getProb(model)
 }
@@ -14,20 +13,17 @@ getProb(model)
 a matrix of probabilities in which columns are labelled with the class names
 }
 \description{
-This is a utility function to simplify and standardize access to model probabilities. The situation is a bit fiddly
-because not all models return probabilities (e.g. kknn), and those that do are not all in the same format (e.g. fnn.*
-returns only a single vector of probabilies for the most likely class). This function will return the same structure
-regardless of model type encountered.
+This is a utility function to simplify and standardize access to model probabilities. The situation is a bit fiddly because not all
+models return probabilities (e.g. kknn), and those that do are not all in the same format (e.g. fnn.* returns only a single vector of
+probabilies for the most likely class). This function will return the same structure regardless of model type encountered.
 \itemize{
-  \item for models that compute probabilities by class, these will be returned;
-  \item for models that compute only the probability of the most likely class, this function will put that
-  probability in the correct column and will fill the remaining cells in the row with equal values such that the row
-  total is 1. Note that these are \emph{not} the true probabiilities, but merely inserted so the assumption that
-  row totals are 1 is satisfied.
-  \item for models that do not compute probabilities, unity (1) will be inserted in the correct column and the
-  remainder will be set to zero.
+  \item for models that compute probabilities by class, these probabilities will be returned;
+  \item for models that compute only the probability of the most likely class, this function will put that probability in the correct
+  column and will fill the remaining cells in the row with equal values such that the row total is 1. Note that these are \emph{not} the
+  true probabiilities, but merely inserted so the assumption that row totals are 1 is satisfied.
+  \item for models that do not compute probabilities, 1 will be inserted in the correct column and the remainder will be set to zero.
 }
-Also note that this function is only useful for categorical data (\code{\link{isCat}}).
+Also note that this function is only useful for categorical data (\code{\link{isCat} returns \code{TRUE}}).
 }
 \seealso{
 \code{\link{isCat}}, and \code{\link{isCont}}.

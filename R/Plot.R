@@ -38,7 +38,7 @@ plotTile.base <- function(data, layers=NULL, title="", maxpixels=500000, reducti
 #' @param discrete force the plot to attempt a discrete fill axis
 #' @param colours specify the colours use; a list if discrete is TRUE, or, 2 or 3 colours for the gradient if discrete is FALSE
 #' @param labels if desired, specify the names of the labels for each class
-#' @param ... other parameters to pass ???
+#' @param ... other parameters to pass
 #' @return the ggplot object with additional aes and scale
 plotTile <- function(gp, layers, discrete, colours, labels=NULL,...){
 

@@ -45,6 +45,7 @@ Note that to date, the aspect computed in the terrain package does not match tha
 }
 \examples{
 library (NPEL.Classification)
+library (raster)
 data(egTile)
 summary (egTile)
 gisPath = './'
@@ -70,15 +71,14 @@ wetns <-  0.0315*blue + 0.2021*green + 0.3102*red + 0.1594*NIR - 0.6806*SWIR1 - 
 
 LandSAT <- stack (ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
 names (LandSAT) <- c('ndvi','ndwi','evi','mavi','nred','ngrn','grnns','brtns','wetns')
-writeRaster (LandSAT,filename=paste0(gisPath,'LandSAT.gri'), overwrite=T)
 rm (blue, green, red, NIR, SWIR1, SWIR2, ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
+\dontrun{writeRaster (LandSAT,filename=paste0(gisPath,'LandSAT'), overwrite=T)}
 
 # Generate DEM derived data using built in functions
-library (raster)
 slope <-  terrain(egTile$dem, opt='slope', unit='degrees')
 aspect <- terrain(egTile$dem, opt='aspect', unit='degrees')
-  aspect[slope < 1e-10] <- NA
-  aspect[abs(aspect-360) < 1e-10] <- 0
+aspect[slope < 1e-10] <- NA
+aspect[abs(aspect-360) < 1e-10] <- 0
 TPI <-    terrain(egTile$dem, opt='TPI')
 TRI <-    terrain(egTile$dem, opt='TRI')
 rough <-  terrain(egTile$dem, opt='roughness')
@@ -86,21 +86,22 @@ flow <-   terrain(egTile$dem, opt='flowdir')
 hsd <-    hillShade(deg2rad(slope), deg2rad(aspect), angle=53.3, direction=199.8, normalize=T)
 
 # Generate DEM derived data manually to match ArcGIS output
-RI <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3),
-            fun=function(x){sqrt( sum((x-x[5])^2,na.rm=T)/8 )}, pad=TRUE, padValue=NA) )
-# SRR <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3),                           # Cute but slow
-            fun=function(x){ m <- min(x); (mean(x)-m)/(max(x)-m) }, pad=TRUE, padValue=NA)
-eMin <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3), fun=min, pad=TRUE, padValue=NA)
-eMax <- focal(rData$dem, w=matrix(1, nrow=3, ncol=3), fun=max, pad=TRUE, padValue=NA)
-eAvg <- focal(rData$dem, w=matrix(1/9, nrow=3, ncol=3), pad=TRUE, padValue=NA)
+ RI <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3),
+             fun=function(x){sqrt( sum((x-x[5])^2,na.rm=T)/8 )}, pad=TRUE, padValue=NA)
+# SRR <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3),    # Cute but slow so do it the long way
+#              fun=function(x){ m <- min(x); (mean(x)-m)/(max(x)-m) }, pad=TRUE, padValue=NA)
+eMin <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3), fun=min, pad=TRUE, padValue=NA)
+eMax <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3), fun=max, pad=TRUE, padValue=NA)
+eAvg <- focal(egTile$dem, w=matrix(1/9, nrow=3, ncol=3), pad=TRUE, padValue=NA)
 SRR <- (eAvg-eMin) / (eMax-eMin)
 SRR[abs(eMax-eMin) < 0.0001] <- NA
 rm (eMin, eMax, eAvg)
 
 DEM <- stack (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
 names (DEM) <- c('slp','asp','TPI','TRI','rough','srr','ri','flow','hsd')
-writeRaster (DEM,filename=paste0(gisPath,'DEM.gri'), overwrite=T)
 rm (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
+\dontrun{writeRaster (DEM,filename=paste0(gisPath,'DEM'), overwrite=T)}
+detach('package:raster',unload=T)
 }
 \seealso{
 \code{\link{raster}} package

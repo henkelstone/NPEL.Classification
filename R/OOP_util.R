@@ -11,6 +11,9 @@
 #' Checks if an object is categorical (or continuous). Currnetly accepts either a vector, presumably from a data frame,
 #' or a model object. In the case of the latter, it will check whether the model was built using categorical data.
 #'
+#' Note that it cannot be assume that if a model fails \code{isCat} it will pass \code{\link{isCont}}; both functions test for the
+#' conditions which it expects to hold, and there may be cases in which neither set of conditions is fully met.
+#'
 #' @param x the object to test
 #' @return TRUE if the object is categorical, or is a model built on categorical data, FALSE otherwise
 #' @seealso \code{\link{isCont}} for the complementary test.
@@ -27,8 +30,11 @@ isCat.default <- function(x){
   if (class(x) %in% c('factor','character','logical')) return(TRUE)
   if (class(x) %in% c('numeric','integer')) return(FALSE)
   if (class(x) %in% c('array','matrix','data.frame')) {
-    warning ("isCat: expects only a single column; running test on the first column")
-    return( isCat(x[,1,drop=F]) )
+    if (length(dim(x)) > 1) {
+      warning ("isCat: expects only a single column; running test on the first column")
+      x <- x[,1,drop=T]
+    }
+    return( isCat(as.vector(as.matrix(x))) ) # Strip off data.frame, array, or matrix type
   }
   stop("isCat: unexpected class passed to isCat")
 }
@@ -45,7 +51,11 @@ isCat.fnn.FNN <- function(x) { TRUE }
 #' @export
 isCat.fnn.class <- function(x) { TRUE }
 #' @export
-isCat.kknn <- function(x) { TRUE }
+isCat.kknn <- function(x) {
+  if (x$response %in% c('ordinal','nominal')) return(TRUE)
+  if (x$response == 'continuous') return(FALSE)
+  stop("isCont: unrecognized type of kknn")
+}
 #' @export
 isCat.gbm <- function(x) { x$num.classes > 1 }
 #' @export
@@ -57,6 +67,9 @@ isCat.svm <- function(x) { any(x$type == 0:2) }
 #' Checks if an object is continuous (or categorical). Currnetly accepts either a vector, presumably from a data frame,
 #' or a model object. In the case of the latter, it will check whether the model was built using continuous data.
 #'
+#' Note that it cannot be assume that if a model fails \code{isCont} it will pass \code{\link{isCat}}; both functions test for the
+#' conditions which it expects to hold, and there may be cases in which neither set of conditions is fully met.
+
 #' @param x the object to test
 #' @return TRUE if the object is continuous, or is a model built on continuous data, FALSE otherwise
 #' @seealso \code{\link{isCat}} for the complementary test.
@@ -68,12 +81,16 @@ isCat.svm <- function(x) { any(x$type == 0:2) }
 #' isCont(model)
 #' }
 isCont <- function(x) { UseMethod('isCont') }
+#' @export
 isCont.default <- function(x){
   if (class(x) %in% c('factor','character','logical')) return(FALSE)
   if (class(x) %in% c('numeric','integer')) return(TRUE)
   if (class(x) %in% c('array','matrix','data.frame')) {
-    warning ("isCont: expects only a single column; running test on the first column")
-    return( isCont(x[,1,drop=F]) )
+    if (length(dim(x)) > 1) {
+      warning ("isCont: expects only a single column; running test on the first column")
+      x <- x[,1,drop=T]
+    }
+    return (isCont(as.vector(as.matrix(x))) ) # Strip off data.frame, array, or matrix type
   }
   stop("isCont: unexpected class passed to isCont")
 }
@@ -90,7 +107,11 @@ isCont.fnn.FNN <- function(x) { FALSE }
 #' @export
 isCont.fnn.class <- function(x) { FALSE }
 #' @export
-isCont.kknn <- function(x) { FALSE }
+isCont.kknn <- function(x) {
+  if (x$response == 'continuous') return(TRUE)
+  if (x$response %in% c('ordinal','nominal')) return(FALSE)
+  stop("isCont: unrecognized type of kknn")
+}
 #' @export
 isCont.gbm <- function(x) { x$num.classes == 1 }
 #' @export
@@ -186,6 +207,73 @@ getClasses.kknn <- function(model) { levels(model$data[ ,as.character(model$term
 getClasses.gbm <- function(model) { model$classes }
 #' @export
 getClasses.svm <- function(model) { warning('getClasses: SVM not supported yet') }
+
+##### getProb #####
+#' Extract the probabilies (confidence) from a model; the probabilities of class occurence.
+#'
+#' This is a utility function to simplify and standardize access to model probabilities. The situation is a bit fiddly because not all
+#' models return probabilities (e.g. kknn), and those that do are not all in the same format (e.g. fnn.* returns only a single vector of
+#' probabilies for the most likely class). This function will return the same structure regardless of model type encountered.
+#' \itemize{
+#'   \item for models that compute probabilities by class, these probabilities will be returned;
+#'   \item for models that compute only the probability of the most likely class, this function will put that probability in the correct
+#'   column and will fill the remaining cells in the row with equal values such that the row total is 1. Note that these are \emph{not} the
+#'   true probabiilities, but merely inserted so the assumption that row totals are 1 is satisfied.
+#'   \item for models that do not compute probabilities, 1 will be inserted in the correct column and the remainder will be set to zero.
+#' }
+#' Also note that this function is only useful for categorical data (\code{\link{isCat} returns \code{TRUE}}).
+#'
+#' @param model the model from which to recover the probability table
+#' @return a matrix of probabilities in which columns are labelled with the class names
+#'
+#' @seealso \code{\link{isCat}}, and \code{\link{isCont}}.
+#' @export
+getProb <- function(model) {
+  if (!isCat(model)) stop ("getProb: requires categorical data")
+  UseMethod("getProb")
+}
+#' @export
+getProb.randomForest <- function(model) { model$votes }
+#' @export
+getProb.rfsrc <- function(model) { model$predicted.oob }
+#' @export
+getProb.fnn.FNN <- function(model) {
+  k <- attr(model,'args')$k
+  n <- length(getFitted(model))
+  m <- levels(sortLevels(getFitted(model)))
+  prob <- attr(model$fnn,'prob')
+
+  ret <- matrix(0, nrow=n, ncol=length(m))
+  colnames(ret) <- m
+  if (k > 1)
+    ret[,1:length(m)] <- (1-prob)/(length(m)-1)
+
+  # A bit of a hack... need to compensate for missing levels
+  tmp <- factorValues(getFitted(model))
+  dim(tmp) <- c(length(tmp),1)
+  ret[cbind( 1:n,apply (tmp,1,function(x){which(x == m)}) )] <- prob
+  ret
+}
+#' @export
+getProb.fnn.class <- function(model) { getProb.fnn.FNN(model)}
+#' @export
+getProb.kknn <- function(model) {
+  n <- length(getFitted(model))
+  m <- levels(sortLevels(getFitted(model)))
+
+  ret <- matrix(0, nrow=n, ncol=length(m))
+  colnames(ret) <- m
+  m <- length(m)
+  ret[cbind(1:n,factorValues(getFitted(model)))] <- 1
+  ret
+}
+#' @export
+getProb.gbm <- function(model) {
+  # I don't know how to transform gbm$fit into probability space... but this work around works.
+  buildPredict (model)(model,getData(model))
+}
+#' @export
+getProb.svm <- function(model) { warning('getProb: SVM not supported yet') }
 
 ##### getFormula #####
 #' Extract the formula used to generate a model object
@@ -283,7 +371,7 @@ getFitted.rfsrc <- function(model) {
   return (as.numeric(model$predicted.oob))
 }
 #' @export
-getFitted.fnn.FNN <- function(model) { # model$fnn # There's a bug in FNN package that means this won't work???
+getFitted.fnn.FNN <- function(model) {
   y <- as.character(getFormula(model)[[2]])
   d <- getData(model)[,eval(y)]
   d[attr(model$fnn,'nn.index')[,1]]
@@ -350,76 +438,6 @@ getVIMP.gbm <- function(model) {
 #' @export
 getVIMP.svm <- function(model) { warning('getVIMP: SVM not supported yet') }
 
-##### getProb #####
-#' Extract the probabilies (accuracies) of the internal model used to fit the data, that is, the probabilities of the
-#' fitted data.
-#'
-#' This is a utility function to simplify and standardize access to model probabilities. The situation is a bit fiddly
-#' because not all models return probabilities (e.g. kknn), and those that do are not all in the same format (e.g. fnn.*
-#' returns only a single vector of probabilies for the most likely class). This function will return the same structure
-#' regardless of model type encountered.
-#' \itemize{
-#'   \item for models that compute probabilities by class, these will be returned;
-#'   \item for models that compute only the probability of the most likely class, this function will put that
-#'   probability in the correct column and will fill the remaining cells in the row with equal values such that the row
-#'   total is 1. Note that these are \emph{not} the true probabiilities, but merely inserted so the assumption that
-#'   row totals are 1 is satisfied.
-#'   \item for models that do not compute probabilities, unity (1) will be inserted in the correct column and the
-#'   remainder will be set to zero.
-#' }
-#' Also note that this function is only useful for categorical data (\code{\link{isCat}}).
-#'
-#' @param model the model from which to recover the probability table
-#' @return a matrix of probabilities in which columns are labelled with the class names
-#' @seealso \code{\link{isCat}}, and \code{\link{isCont}}.
-#' @export
-getProb <- function(model) {
-  if (!isCat(model)) stop ("getProb: requires categorical data")
-  UseMethod("getProb")
-}
-#' @export
-getProb.randomForest <- function(model) { model$votes }
-#' @export
-getProb.rfsrc <- function(model) { model$predicted.oob }
-#' @export
-getProb.fnn.FNN <- function(model) {
-  k <- attr(model,'args')$k
-  n <- length(getFitted(model))
-  m <- levels(sortLevels(getFitted(model)))
-  prob <- attr(model$fnn,'prob')
-
-  ret <- matrix(0, nrow=n, ncol=length(m))
-  colnames(ret) <- m
-  if (k > 1)
-    ret[,1:length(m)] <- (1-prob)/(length(m)-1)
-
-  # A bit of a hack... need to compensate for missing levels
-  tmp <- factorValues(getFitted(model))
-  dim(tmp) <- c(length(tmp),1)
-  ret[cbind( 1:n,apply (tmp,1,function(x){which(x == m)}) )] <- prob
-  ret
-}
-#' @export
-getProb.fnn.class <- function(model) { getProb.fnn.FNN(model)}
-#' @export
-getProb.kknn <- function(model) {
-  n <- length(getFitted(model))
-  m <- levels(sortLevels(getFitted(model)))
-
-  ret <- matrix(0, nrow=n, ncol=length(m))
-  colnames(ret) <- m
-  m <- length(m)
-  ret[cbind(1:n,factorValues(getFitted(model)))] <- 1
-  ret
-}
-#' @export
-getProb.gbm <- function(model) {
-# I don't know how to transform gbm$fit into probability space... but this work around works.
-  buildPredict (model)(model,getData(model))
-}
-#' @export
-getProb.svm <- function(model) { warning('getProb: SVM not supported yet') }
-
 
 ########## Higher level functions ##########
 
@@ -450,8 +468,6 @@ buildModel <- function(type,data,fx,args=NULL) {
   # This function can be called either from generateModels, or from other internal functions e.g. npelVIMP. As a result, it could be passed
   # a type that is one of the types listed above, i.e. internal types, or it could be passed a class name. These match in all but two cases,
   # so do a minor check on the type variable before calling the resulting function.
-  if (type=='rF') type <- 'randomForest'
-  if (type=='rFSRC') type <- 'rfsrc'
   class (data) <- c(type,class(data))
   .buildModel(data,fx,args)
 }
@@ -542,25 +558,23 @@ buildPredict.randomForest <- function(model) {
 }
 #' @export
 buildPredict.rfsrc <- function(model) {
-# It isn't necessary to compute importance; and rfsrc can handle missing values.
+# rfsrc returns probabilities when it's categorical and a vector when it's continuous data
   requireNamespace('randomForestSRC')
   return ( function (model,data,...) {
-    return( predict(model,data,...)$predicted )
+    return( randomForestSRC::predict.rfsrc(model,data,...)$predicted )
   } )
 }
 #' @export
 buildPredict.fnn.FNN <- function(model) {
-# Package::FNN doesn't have a predict function at all; manually strip off the NA values, then generate using the knn function
+# Package::FNN doesn't have a predict function at all; manually strip off the NA values, then generate using FNN::knn
   requireNamespace('FNN')
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
-      fx <- getFormula(model)
-      y <- as.character(fx[[2]])
-      x <- attr(terms(fx),'term.labels')
-      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+      x <- attr(terms(getFormula(model)),'term.labels')
+      data <- scale(data[,x])
     }
-    return ( FNN::knn(train=model$train, test=data[names(model$train)], cl=model$classes, k=getArgs(model)$k,...) )
+    return ( FNN::knn(train=model$train, test=data[,names(model$train)], cl=model$classes, k=getArgs(model)$k,...) )
   } )
 }
 #' @export
@@ -570,12 +584,10 @@ buildPredict.fnn.class <- function(model) {
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
-      fx <- getFormula(model)
-      y <- as.character(fx[[2]])
-      x <- attr(terms(fx),'term.labels')
-      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+      x <- attr(terms(getFormula(model)),'term.labels')
+      data <- scale(data[,x])
     }
-    return ( class::knn(model$train,data[names(model$train)],model$classes,getArgs(model)$k,...) )
+    return ( class::knn(model$train,data[,names(model$train)],model$classes,getArgs(model)$k,...) )
   } )
 }
 #' @export
@@ -585,10 +597,8 @@ buildPredict.kknn <- function(model) {
   return ( function (model,data,...) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
-      fx <- getFormula(model)
-      y <- as.character(fx[[2]])
-      x <- attr(terms(fx),'term.labels')
-      data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
+      x <- attr(terms(getFormula(model)),'term.labels')
+      data <- as.data.frame(scale(data[,x]))
     }
     return( kknn::kknn(formula=model$terms,train=model$data,test=data,k=model$best.parameters[[2]],kernel=model$best.parameters[[1]],getArgs(model)[c('kmax','kernel')],...)$fitted.values)
   } )
