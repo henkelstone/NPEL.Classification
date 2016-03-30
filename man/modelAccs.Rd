@@ -68,7 +68,7 @@ modelRun <- generateModels (data = siteData,
 mE <- modelAccs (modelRun, ecoGroup[['domSpecies','labels']])
 str(mE,1)
 
-# Contiuous Data
+# Continuous Data
 modelRun <- generateModels (data = siteData,
                             modelTypes = contModels,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),

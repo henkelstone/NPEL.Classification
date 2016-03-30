@@ -2,9 +2,9 @@
 % Please edit documentation in R/Docs.R
 \name{NPEL.Classification}
 \alias{NPEL.Classification}
-\title{For aiding in processings and classification of remote sensed data, and rendering of imputed maps}
+\title{For aiding in the processing and classification of remote sensed data, and rendering of imputed maps}
 \description{
-For aiding in processings and classification of remote sensed data, and rendering of imputed maps
+For aiding in the processing and classification of remote sensed data, and rendering of imputed maps
 }
 \section{Functions}{
 
@@ -126,7 +126,7 @@ necessary.
 \section{Future Expansion}{
 
 While this section is more theoretical, a word on adding other modelling packages to this package. Given the object oriented (OOP) nature
-of the implementation, adding packages \emph{should} be a task comprising adding the relevent OOP code; that is, add a relevent function
+of the implementation, adding packages \emph{should} be a task comprising adding the relevant OOP code; that is, add a relevant function
 for every overloaded function in the package. At the time of this writing, all of these functions can be found in the file
 \code{OOP_util.R}.
 
@@ -138,6 +138,12 @@ new functionality is only to be used locally. For that matter, extra OOP code fo
 package, but could remain external as long as the correct overloading are used!
 
 Good luck and I hope this work does what you need it to do...
+}
+
+\section{Warning}{
+
+NPEL.Classification must be \emph{before} \pkg{raster} on the search path; in particular \getData{getData} is a valid function in both
+packages. If you are getting very unusual errors, consider detaching and reattaching this package so it is found first.
 }
 \seealso{
 The code in this package depends heavily on the \pkg{\link[raster]{raster}} package. A couple of functions utilize

@@ -20,7 +20,7 @@ A factor variable containing the most probable class indicated by the probabilit
   Care should be taken as this function does not always return the same type.
 }
 \description{
-Some model types and packages, when asked to predict new values, return probabilite that a given class will occur.
+Some model types and packages, when asked to predict new values, return the probability that a given class will occur.
 This function converts this format into a vector of classes (type factor).
 }
 \examples{

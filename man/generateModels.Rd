@@ -20,7 +20,7 @@ other than y if fx is also not provided.}
 
 \item{y}{(optional) the name of the column of the 'response' variable; defaults to first column if fx is also not provided. It can be
 either categorical or continuous data, and it will attempt to coerce vectors of unknown types (e.g. boolean) into one of these two
-groups, albiet in a rather rudimentary fashion. If it cannot succeed it will complain.}
+groups, albeit in a rather rudimentary fashion. If it cannot succeed it will complain.}
 
 \item{grouping}{(optional) a transformation vector for input classes; if not provided, no grouping will be used. See
 \code{\link{ecoGroup}} for more information about this technique.}

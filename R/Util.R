@@ -42,23 +42,21 @@ mergeLevels <- function (x,y) {
 factorValues <- function (x) { as.numeric(as.character(x)) }
 
 ##### deg2rad #####
-#' Convert degrees to radians
-#' @param x the input angle (in degrees)
-#' @return The angle in radians
+#' Convert degrees to radians and vice versa
+#' @param x the input angle in degrees (or radians)
+#' @return The angle in radians (or degrees)
 #' @export
 deg2rad <- function (x) { x*pi/180 }
 
 ##### rad2deg #####
-#' Covert radians to degrees
-#' @param x the input angle (in radians)
-#' @return The angle in degrees
+#' @rdname deg2rad
 #' @export
 rad2deg <- function (x) { x*180/pi }
 
 ##### prob2class #####
 #' Convert a matrix of probabilities to a vector of classes
 #'
-#' Some model types and packages, when asked to predict new values, return probabilite that a given class will occur.
+#' Some model types and packages, when asked to predict new values, return the probability that a given class will occur.
 #' This function converts this format into a vector of classes (type factor).
 #'
 #' @param prob a matrix of probabilities with each column representing a different class.

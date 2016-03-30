@@ -2,17 +2,20 @@
 % Please edit documentation in R/Util.R
 \name{deg2rad}
 \alias{deg2rad}
-\title{Convert degrees to radians}
+\alias{rad2deg}
+\title{Convert degrees to radians and vice versa}
 \usage{
 deg2rad(x)
+
+rad2deg(x)
 }
 \arguments{
-\item{x}{the input angle (in degrees)}
+\item{x}{the input angle in degrees (or radians)}
 }
 \value{
-The angle in radians
+The angle in radians (or degrees)
 }
 \description{
-Convert degrees to radians
+Convert degrees to radians and vice versa
 }
 

@@ -6,24 +6,27 @@
 ########## Get Methods ##########
 
 ##### isCat #####
-#' Is the object categorical (as opposed to continuous)
+#' Is the object categorical or continuous
 #'
-#' Checks if an object is categorical (or continuous). Currnetly accepts either a vector, presumably from a data frame,
+#' Checks if an object is categorical (or continuous). Currently accepts either a vector, presumably from a data frame,
 #' or a model object. In the case of the latter, it will check whether the model was built using categorical data.
 #'
 #' Note that it cannot be assume that if a model fails \code{isCat} it will pass \code{\link{isCont}}; both functions test for the
 #' conditions which it expects to hold, and there may be cases in which neither set of conditions is fully met.
 #'
 #' @param x the object to test
-#' @return TRUE if the object is categorical, or is a model built on categorical data, FALSE otherwise
-#' @seealso \code{\link{isCont}} for the complementary test.
+#' @return TRUE if the object is categorical/continuous, or is a model built on categorical/continuous data, FALSE otherwise
 #' @export
 #' @examples
 #' isCat(siteData$ecoType)
 #' isCat(siteData$slope)
 #' \dontrun{
-#' isCat(model)
-#' }
+#' isCat(model) }
+#'
+#' isCont(siteData$ecoType)
+#' isCont(siteData$slope)
+#' \dontrun{
+#' isCont(model) }
 isCat <- function(x) { UseMethod('isCat') }
 #' @export
 isCat.default <- function(x){
@@ -62,24 +65,8 @@ isCat.gbm <- function(x) { x$num.classes > 1 }
 isCat.svm <- function(x) { any(x$type == 0:2) }
 
 ##### isCont #####
-#' Is the object continuous (as opposed to categorical)
-#'
-#' Checks if an object is continuous (or categorical). Currnetly accepts either a vector, presumably from a data frame,
-#' or a model object. In the case of the latter, it will check whether the model was built using continuous data.
-#'
-#' Note that it cannot be assume that if a model fails \code{isCont} it will pass \code{\link{isCat}}; both functions test for the
-#' conditions which it expects to hold, and there may be cases in which neither set of conditions is fully met.
-
-#' @param x the object to test
-#' @return TRUE if the object is continuous, or is a model built on continuous data, FALSE otherwise
-#' @seealso \code{\link{isCat}} for the complementary test.
+#' @rdname isCat
 #' @export
-#' @examples
-#' isCont(siteData$ecoType)
-#' isCont(siteData$slope)
-#' \dontrun{
-#' isCont(model)
-#' }
 isCont <- function(x) { UseMethod('isCont') }
 #' @export
 isCont.default <- function(x){
@@ -133,11 +120,9 @@ isCont.svm <- function(x) { any(x$type == 3:4) }
 #'   If you are getting very strange errors from getData, consider this\ldots The raster package also has a getData
 #'   function that is not overloaded. Depending on where the two packages fall in the search path, it may be that
 #'   raster::getData is getting called instead of NPEL.Classification::getData. See help on \code{\link{search}} for a
-#'   starting point on search paths. The following hack may help.
-#'
-#'   \code{detach (package:NPEL.Classification)}\cr
-#'   \code{library (NPEL.Classification)}\cr
-#'
+#'   starting point on search paths. The following hack may help.\cr\cr
+#'   \code{detach (package:NPEL.Classification)}
+#'   \code{library (NPEL.Classification)}
 #' @return a data frame of the data used to generate the model.
 #' @export
 getData <- function(model) {
@@ -179,7 +164,7 @@ getData.svm <- function(model) {
 #' Recover the classes that a model uses
 #'
 #' This function recovers the classes present in this model That is, it returns the levels used in the original
-#' predicted variable. Of course, this is only relevent if the model was built using categorical data; otherwise
+#' predicted variable. Of course, this is only relevant if the model was built using categorical data; otherwise
 #' an error will be returned.
 #'
 #' @note The nearest neighbour models in package:FNN and package:class do not enclose their results in a class; when
@@ -209,16 +194,16 @@ getClasses.gbm <- function(model) { model$classes }
 getClasses.svm <- function(model) { warning('getClasses: SVM not supported yet') }
 
 ##### getProb #####
-#' Extract the probabilies (confidence) from a model; the probabilities of class occurence.
+#' Extract the probabilities (confidence) from a model; the probabilities of class occurrence.
 #'
 #' This is a utility function to simplify and standardize access to model probabilities. The situation is a bit fiddly because not all
 #' models return probabilities (e.g. kknn), and those that do are not all in the same format (e.g. fnn.* returns only a single vector of
-#' probabilies for the most likely class). This function will return the same structure regardless of model type encountered.
+#' probabilities for the most likely class). This function will return the same structure regardless of model type encountered.
 #' \itemize{
 #'   \item for models that compute probabilities by class, these probabilities will be returned;
 #'   \item for models that compute only the probability of the most likely class, this function will put that probability in the correct
 #'   column and will fill the remaining cells in the row with equal values such that the row total is 1. Note that these are \emph{not} the
-#'   true probabiilities, but merely inserted so the assumption that row totals are 1 is satisfied.
+#'   true probabilities, but merely inserted so the assumption that row totals are 1 is satisfied.
 #'   \item for models that do not compute probabilities, 1 will be inserted in the correct column and the remainder will be set to zero.
 #' }
 #' Also note that this function is only useful for categorical data (\code{\link{isCat} returns \code{TRUE}}).
@@ -333,7 +318,7 @@ getArgs <- function(model) {
 #'
 #' There is a subtle but significant point about getFitted: it cannot be assumed that \code{predict} called with the same data used to
 #' generate the model will give the same results as getFitted. In general, when the original data is dropped down through a classifier, it
-#' will return the orginal results. It makes sense: if this is a known data point, then why not return the known class. However, in order to
+#' will return the original results. It makes sense: if this is a known data point, then why not return the known class. However, in order to
 #' estimate accuracy, most packages will use some type of technique to give a dataset that shows what the model \emph{would} have return if
 #' the datapoint had \emph{not} been included in the original data. In all cases, getFitted returns this dataset: the one that can be used
 #' for error estimation. \code{\link{buildPredict}} was designed for classifying new data; what it returns when original data is used is
@@ -352,7 +337,7 @@ getArgs <- function(model) {
 #'   builds objects of these types it wraps them in a class so they are recognizable by S3 methods, and attaches the formula and data.
 #'   Hence, if a model was built directly using these packages the result will not run this function.
 #' @section Warning:
-#'   I am concerned that there is a bug in FNN::knn and possibly class::knn??? describe or remove this note
+#'   I am concerned that there is a bug in FNN::knn and possibly class::knn ??? describe or remove this note
 #' @param model is the model for which to extract the fitted data
 #' @return a factor variable containing the fitted data
 #' @export

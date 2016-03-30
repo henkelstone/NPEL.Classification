@@ -37,7 +37,7 @@ render.
 
 Runtimes may be long! On an 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full rendering of a
 single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB... and this is only for a
-single tile. It is recommended that writeTiles be reserved for outputing comparison tiles of a smaller size, or subsampled data.
+single tile. It is recommended that writeTiles be reserved for outputting comparison tiles of a smaller size, or subsampled data.
 }
 \examples{
 # See the examples at writeTile.

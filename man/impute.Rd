@@ -7,17 +7,17 @@
 impute(inRdata, iData, outFilename, fx = NULL, x = NULL, y = NULL)
 }
 \arguments{
-\item{inRdata}{a raster* object with the spatial data---typcially a map of indecies to the lookup table.}
+\item{inRdata}{a raster* object with the spatial data---typically a map of indices to the lookup table.}
 
-\item{iData}{or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g. a site
-characteristic such as cover, tree density, species composition, etc.}
+\item{iData}{or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g.
+a site characteristic such as cover, tree density, species composition, etc.}
 
 \item{outFilename}{a file to hold the output resulting raster object.}
 
-\item{fx}{(optional) a one-sided formula specifying which column(s) in \code{iData} to output; will either be computed from x if omited, or
-assume to be all columns in \code{iData}.}
+\item{fx}{(optional) a one-sided formula specifying which column(s) in \code{iData} to output; will either be computed from x if omitted,
+or assume to be all columns in \code{iData}.}
 
-\item{x}{(optional) a list of columns from \code{iData} to output; will be computed from fx if omited.}
+\item{x}{(optional) a list of columns from \code{iData} to output; will be computed from fx if omitted.}
 
 \item{y}{(optional) the pivot column that connects the model and the imputation data; if neither fx nor this is specified then it is
 assumed to be the first column in \code{iData}.}
@@ -27,7 +27,7 @@ a raster.brick of the imputed data with as many layers as specified.
 }
 \description{
 This function takes an input raster, that is, an image on a categorical variable, and generates an image (or images) of other data using
-the input raster as a key or index variable. It is used to render maps of variables that are otherwise unsuitable using Nearest Neighour
+the input raster as a key or index variable. It is used to render maps of variables that are otherwise unsuitable using Nearest Neighbour
 algorithms such as continuous variables.
 }
 \details{
@@ -48,23 +48,25 @@ that it is possible to produce multiple output from a single rendering simply by
 }
 \section{Warning}{
 
-In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the \link{raster} package.
+In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
+\link{raster} package.
 To this end, if the data is found to be other than numeric, it is converted to numeric using the command
-\code{as.numeric(factor(x))}, which, as has been observed before in this documentaiton returns the \emph{indicies} of the factors. It
-\emph{should} be possible to recover the values of the indicies using this same typecast, however, there is a risk that there could be
-some glitch or error, and a mismapping could result between factor indicies and actual values.
+\code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors. It
+\emph{should} be possible to recover the values of the indices using this same typecast, however, there is a risk that there could be
+some glitch or error, and a mismapping could result between factor indices and actual values.
 
 \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 }
 \examples{
 iData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
-models <- generateModels(iData, suppModels[!suppModels == contModels][1], x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
+models <- generateModels(iData, suppModels[!suppModels == contModels][1],
+                         x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
 
 fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
 egData <- writeTile (models[[1]], egTile, fNN, layers='class')
 
 fImpute <- paste0(dirname(tempfile()),'/Tmp_nnImpute.tif')
-egImpute <- impute (egData, iData, fImpute, formula('siteID ~ ecoType + bedrockD + parentMaterial'))
+egImpute <- impute (egData, iData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
 plot (egImpute)
 
 unlink (fNN)

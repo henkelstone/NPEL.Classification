@@ -19,7 +19,7 @@ generate the model, we would get this as a result.
 \details{
 There is a subtle but significant point about getFitted: it cannot be assumed that \code{predict} called with the same data used to
 generate the model will give the same results as getFitted. In general, when the original data is dropped down through a classifier, it
-will return the orginal results. It makes sense: if this is a known data point, then why not return the known class. However, in order to
+will return the original results. It makes sense: if this is a known data point, then why not return the known class. However, in order to
 estimate accuracy, most packages will use some type of technique to give a dataset that shows what the model \emph{would} have return if
 the datapoint had \emph{not} been included in the original data. In all cases, getFitted returns this dataset: the one that can be used
 for error estimation. \code{\link{buildPredict}} was designed for classifying new data; what it returns when original data is used is
@@ -41,6 +41,6 @@ The nearest neighbour models in package:FNN and package:class do not enclose the
 }
 \section{Warning}{
 
-  I am concerned that there is a bug in FNN::knn and possibly class::knn??? describe or remove this note
+  I am concerned that there is a bug in FNN::knn and possibly class::knn ??? describe or remove this note
 }
 

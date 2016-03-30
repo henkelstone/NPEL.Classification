@@ -24,7 +24,7 @@ sp::SpatialPoints. It is used to build combined remote-sensed and field data tha
 }
 \examples{
 library (maptools)
-vData <- readShapePoints (system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
 detach ('package:maptools',unload=T)
 }

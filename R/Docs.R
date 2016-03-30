@@ -9,9 +9,9 @@
 #' @section Constants:
 #' \itemize{
 #'   \item \code{suppModels}: supported models---the model types (packages) this package currently supports.
-#'   \item \code{probModels}: probabalistic models---models types that will return probabilities when created on categorical data.
+#'   \item \code{probModels}: probabilistic models---models types that will return probabilities when created on categorical data.
 #'   \item \code{contModels}: continuous models---models that can be used (natively) with continuous variables. Of course other
-#'     classification algrotihms, for example nearest neighbour, can be run on an index variable then continuous data can then be
+#'     classification algorithms, for example nearest neighbour, can be run on an index variable then continuous data can then be
 #'     \code{\link[=impute]{imputed}} from this.
 #' }
 #'
@@ -30,7 +30,7 @@
 NULL
 
 ##### NPEL.Classification #####
-#' For aiding in processings and classification of remote sensed data, and rendering of imputed maps
+#' For aiding in the processing and classification of remote sensed data, and rendering of imputed maps
 #'
 #' @section Functions:
 #' This package aims to aid and simplify the following tasks:
@@ -145,7 +145,7 @@ NULL
 #'
 #' @section Future Expansion:
 #' While this section is more theoretical, a word on adding other modelling packages to this package. Given the object oriented (OOP) nature
-#' of the implementation, adding packages \emph{should} be a task comprising adding the relevent OOP code; that is, add a relevent function
+#' of the implementation, adding packages \emph{should} be a task comprising adding the relevant OOP code; that is, add a relevant function
 #' for every overloaded function in the package. At the time of this writing, all of these functions can be found in the file
 #' \code{OOP_util.R}.
 #'
@@ -157,6 +157,10 @@ NULL
 #' package, but could remain external as long as the correct overloading are used!
 #'
 #' Good luck and I hope this work does what you need it to do...
+#'
+#' @section Warning:
+#' NPEL.Classification must be \emph{before} \pkg{raster} on the search path; in particular \getData{getData} is a valid function in both
+#' packages. If you are getting very unusual errors, consider detaching and reattaching this package so it is found first.
 #'
 #' @name NPEL.Classification
 # @docType package
@@ -279,16 +283,13 @@ NULL
 #'   c(1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,7,8,8,8,8,9,9,9,9,9,10,10),
 #'   c('1'="Barren",'2'="Pine",'3'="Black Sp",'4'="White Sp",'5'="Birch",'6'="Aspen",'7'="Swamp",
 #'     '8'="Bog",'9'="Fen",'10'="Shore"),
-#'   c('1'="gray",'2'="tan1",'3'="green4",'4'="seagreen",'5'="green3",'6'="green2",'7'="steelblue",
-#'     '8'="steelblue2",'9'="steelblue4",'10'="azure")
+#'   c('E6E600','E47A07','70A800','00A04B','42FF07','41DBCF','3FC5A5','83C6E1','C077E3','004DA8','000000')
 #' )
 #' ecoGroup['domGroup',] <- list(
 #'   c(1,1,2,2,2,2,2,2,2,2,2,2,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4),
 #'   c("Barren","Conifer","Decid","Wetland"),
-#'   c('1'="gray",'2'="green4",'3'="green2",'4'="steelblue")
+#'   c('E6E600','00A04B','42FF07','83C6E1')
 #' )
-
-
 "ecoGroup"
 
 ##### siteData #####
@@ -316,24 +317,12 @@ NULL
 #'   \item \code{year} the year the field site was visited
 #'   \item \code{slope} field recorded slope of the site, useful to compare with DEM data
 #'   \item \code{aspect} field recorded aspect of the site, useful to compare with DEM data
-#'   \item \code{lfhD} depth of LFH (litter, fibric, humic) soil layer
-#'   \item \code{waterD} depth to water
-#'   \item \code{bedrockD} depth to bedrock
-#'   \item \code{parentMaterial} the type of parent material (soil) found at the site
-#'   \item \code{effTexture} the effective texture of the soil
 #'   \item \code{ecoType} the ecotype the site was classed as
 #'   \item \code{base.1:7} Landsat base layers
-#'   \item \code{evi} enhanced vegetation index -- derived from Landsat data
-#'   \item \code{ndvi} normalized difference vegetation index -- derived from Landsat data
-#'   \item \code{ndwi} normalized difference water index -- derived from Landsat data
-#'   \item \code{mavi} modified soil-adjusted vegetation index -- derived from Landsat data
 #'   \item \code{grnns, wetness, brtns} the so-called \sQuote{Tasseled-Cap} variables; they reflect greenness, wetness, and brightness respectively
 #'   \item \code{dem} the basic elevations from the digital elevation model
 #'   \item \code{slp} slope, as derived from the DEM
 #'   \item \code{asp} aspect, as derived from the DEM; note that different algorithms use different values for NA, a reliable filter is that aspect is NA when slope == 0
-#'   \item \code{srr} surface relief ratio, a measure of surface roughness -- derived from the DEM
-#'   \item \code{cti} compound topographic index, a measure of surface roughness -- derived from the DEM
-#'   \item \code{ri} roughness index, a measure of surface roughness -- derived from the DEM
 #'   \item \code{hsd} hillshade, a measure of how much light the surface receives -- derived from the DEM
 #' }
 #'

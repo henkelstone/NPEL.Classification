@@ -116,13 +116,12 @@ ecoGroup['domSpecies',] <- list(
   c(1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,7,8,8,8,8,9,9,9,9,9,10,10),
   c('1'="Barren",'2'="Pine",'3'="Black Sp",'4'="White Sp",'5'="Birch",'6'="Aspen",'7'="Swamp",
     '8'="Bog",'9'="Fen",'10'="Shore"),
-  c('1'="gray",'2'="tan1",'3'="green4",'4'="seagreen",'5'="green3",'6'="green2",'7'="steelblue",
-    '8'="steelblue2",'9'="steelblue4",'10'="azure")
+  c('E6E600','E47A07','70A800','00A04B','42FF07','41DBCF','3FC5A5','83C6E1','C077E3','004DA8','000000')
 )
 ecoGroup['domGroup',] <- list(
   c(1,1,2,2,2,2,2,2,2,2,2,2,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4),
   c("Barren","Conifer","Decid","Wetland"),
-  c('1'="gray",'2'="green4",'3'="green2",'4'="steelblue")
+  c('E6E600','00A04B','42FF07','83C6E1')
 )
 }
 \keyword{datasets}

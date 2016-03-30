@@ -20,8 +20,9 @@ in the model. See \code{\link{ecoGroup}} for more information on how to garner a
 \value{
 Note: this function returns different data depending on the whether the model is categorical or continuous:
 \itemize{
-  \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
-    \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
+  \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracies,
+    \code{prodAcc} = producer accuracies, \code{classLevelAcc} = class-level accuracies, \code{overallAcc} = overall accuracy,
+    \code{kappa} =kappa
   \item \code{continuous} a two element names list: \code{overallAcc} = overall accuracy, \code{mse} = mean squared error
 }
 }
@@ -31,24 +32,30 @@ that question. There are a number of different metrics used depending primarily 
 data---see below for details.
 }
 \details{
-The metrics returned for \emph{categorical} models are:
+The metrics returned for \bold{categorical} models are:
 \itemize{
   \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
     predicted values as rows and actual values as columns.
   \item \code{userAcc} a data frame in which each column represents the user accuracy for a given model, and rows are the accuracies for
-    that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
-    is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
-    the number sites that the model predicted to be in that class.
+    that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission
+    error, is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites
+    divided by the number sites that the model predicted to be in that class.
   \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies
     for that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called
-    omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the
-    number that are actually of that class.
+    omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by
+    the number that are actually of that class.
+  \item \code{classLevelAcc} a vector of class-level accuracies---another statistic for measuring accuracy as distinct from producer or
+    user error. It is based on omission and commission errors (see producer and user accuracies), such that \eqn{N_ommission} is the
+    number of incorrectly classified points in a \emph{column} of the confusion matrix, and \eqn{N_commission} is the number of
+    incorrectly classified points in a \emph{row} of the confusion matrix. Given that, class-level accuracy can be computed as:
+      \deqn{Acc_{class level} = \frac{N_correct}{N_correct + N_ommission + N_commission}}{Acc_class.level = N_correct / (N_correct +
+            N_ommission + N_commission)}
   \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
-    predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
-    chance, standardized by unity less the probability by chance alone.
+    predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected
+    by chance, standardized by unity less the probability by chance alone.
       \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
 }
-The metrics returned for \emph{continuous} models are:
+The metrics returned for \bold{continuous} models are:
 \itemize{
   \item \code{overallAcc} is the overall r-squared, computed by \eqn{1 - \frac{SS.residual}{SS.total}}{1 - SS.residual/SS.total}
   \item \code{mse} is the raw mean squared error, computed by \eqn{mean(SS.residual)/N}

@@ -18,7 +18,7 @@
 #' @seealso See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
 #' @examples
 #' \dontrun{
-#' # Read egTile from the provided geoTiff's; gisPath must point to package installion folder.
+#' # Read egTile from the provided geoTiff's; gisPath must point to package installation folder.
 #' path <- system.file("extdata", "egTile", package = "testdat")
 #' rData <- readTile(gisPath, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #'
@@ -53,7 +53,7 @@ readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
 #'
 #' @examples
 #' library (maptools)
-#' vData <- readShapePoints (system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+#' vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 #' siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
 #' detach ('package:maptools',unload=T)
 #' @export
@@ -80,7 +80,7 @@ extractPoints <- function (rData, vData, locs, na.omit=T) {
 #'
 #' Model packages/types:
 #' \itemize{
-#'   \item Random Forest models are probabilistic---that is, they output the class that has the largest number of occurences in each
+#'   \item Random Forest models are probabilistic---that is, they output the class that has the largest number of occurrences in each
 #'   individual tree. Hence they can output a wide variety of different statistics.
 #'   \item Nearest Neighbour algorithms, by their very nature do not generate class probabilities; they output information about the nearest
 #'   existing data-point (in phase space). Hence, the option to output probabilities is disabled for the two primitive nearest-neighbour
@@ -90,8 +90,8 @@ extractPoints <- function (rData, vData, locs, na.omit=T) {
 #'   \item The GBM package reports probabilities, so if desired, this can be used as a measure of certainty.
 #' }
 #'
-#' Input data type: for continuous data it is meaningful to talk about the probability of a class occuring, especially in contrast to the
-#' probability of another class occuring. Of course with continuous data, this doesn't make sense; a model generated on continuous data
+#' Input data type: for continuous data it is meaningful to talk about the probability of a class occurring, especially in contrast to the
+#' probability of another class occurring Of course with continuous data, this doesn't make sense; a model generated on continuous data
 #' (that is a regression model) can only report it's best estimate of the continuous variable at each point.
 #'
 #' User preference: given those particulars, the user can choose what output they might want:
@@ -242,7 +242,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
 #' @section Warning:
 #' Runtimes may be long! On an 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full rendering of a
 #' single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB... and this is only for a
-#' single tile. It is recommended that writeTiles be reserved for outputing comparison tiles of a smaller size, or subsampled data.
+#' single tile. It is recommended that writeTiles be reserved for outputting comparison tiles of a smaller size, or subsampled data.
 #'
 #' @param models a list of model names, the standard output from \code{\link{generateModels}}
 #' @param inRdata is the image from which to generate the rendering, which can be read in using \code{\link{readTile}}
@@ -269,7 +269,7 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' Impute data from a NN model
 #'
 #' This function takes an input raster, that is, an image on a categorical variable, and generates an image (or images) of other data using
-#' the input raster as a key or index variable. It is used to render maps of variables that are otherwise unsuitable using Nearest Neighour
+#' the input raster as a key or index variable. It is used to render maps of variables that are otherwise unsuitable using Nearest Neighbour
 #' algorithms such as continuous variables.
 #'
 #' It is perhaps easiest to explain the concept of imputation using an example: consider the case where the input raster represents the ID
@@ -288,21 +288,22 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' that it is possible to produce multiple output from a single rendering simply by imputing a different (suite of) variable(s).
 #'
 #' @section Warning:
-#' In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the \link{raster} package.
+#' In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
+#' \link{raster} package.
 #' To this end, if the data is found to be other than numeric, it is converted to numeric using the command
-#' \code{as.numeric(factor(x))}, which, as has been observed before in this documentaiton returns the \emph{indicies} of the factors. It
-#' \emph{should} be possible to recover the values of the indicies using this same typecast, however, there is a risk that there could be
-#' some glitch or error, and a mismapping could result between factor indicies and actual values.
+#' \code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors. It
+#' \emph{should} be possible to recover the values of the indices using this same typecast, however, there is a risk that there could be
+#' some glitch or error, and a mismapping could result between factor indices and actual values.
 #'
 #' \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 #'
-#' @param inRdata a raster* object with the spatial data---typcially a map of indecies to the lookup table.
-#' @param iData or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g. a site
-#'   characteristic such as cover, tree density, species composition, etc.
+#' @param inRdata a raster* object with the spatial data---typically a map of indices to the lookup table.
+#' @param iData or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g.
+#'   a site characteristic such as cover, tree density, species composition, etc.
 #' @param outFilename a file to hold the output resulting raster object.
-#' @param fx (optional) a one-sided formula specifying which column(s) in \code{iData} to output; will either be computed from x if omited, or
-#'   assume to be all columns in \code{iData}.
-#' @param x (optional) a list of columns from \code{iData} to output; will be computed from fx if omited.
+#' @param fx (optional) a one-sided formula specifying which column(s) in \code{iData} to output; will either be computed from x if omitted,
+#'   or assume to be all columns in \code{iData}.
+#' @param x (optional) a list of columns from \code{iData} to output; will be computed from fx if omitted.
 #' @param y (optional) the pivot column that connects the model and the imputation data; if neither fx nor this is specified then it is
 #'   assumed to be the first column in \code{iData}.
 #'
@@ -314,13 +315,14 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #'
 #' @examples
 #' iData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
-#' models <- generateModels(iData, suppModels[!suppModels == contModels][1], x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
+#' models <- generateModels(iData, suppModels[!suppModels == contModels][1],
+#'                          x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
 #'
 #' fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
 #' egData <- writeTile (models[[1]], egTile, fNN, layers='class')
 #'
 #' fImpute <- paste0(dirname(tempfile()),'/Tmp_nnImpute.tif')
-#' egImpute <- impute (egData, iData, fImpute, formula('siteID ~ ecoType + bedrockD + parentMaterial'))
+#' egImpute <- impute (egData, iData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
 #' plot (egImpute)
 #'
 #' unlink (fNN)

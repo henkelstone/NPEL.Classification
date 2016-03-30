@@ -20,7 +20,7 @@ returns a data frame with rows as the variables, and columns being the classes. 
 }
 \description{
 There is no well-established way of determining variable importance for nearest neighbour classifiers. In an effort to generate \emph{some} useful
-metric for comparison with other models, we developed this leave-one-out type approach; it is analagous to a variable inflation metric.
+metric for comparison with other models, we developed this leave-one-out type approach; it is analogous to a variable inflation metric.
 The algorithm proceeds as follows:
 \enumerate{
   \item Given a model, find the formula it was generated with.
@@ -43,7 +43,7 @@ discussion on why this method is not the greatest.
 While this algorithm is simple, easy to compute, and applicable to \emph{any} model, it has some (serious) limitations:
 
 \itemize{
-  \item The most notable is that it is not clear that a variable's impact on a model's accuratly is well correlated with the drop in
+  \item The most notable is that it is not clear that a variable's impact on a model's accuracy is well correlated with the drop in
   overall accuracy! Sure, this can be one definition of a VIMP metric, but this is much coarser than those use by, for example, random
   forest. Hence, while this function gives some idea of which variables are contributing to accuracy, it is not clear that the scale is
   consistent between variables. Hence, a VIMP of 0.1 for a given variable on a given class may not be the same as a VIMP of 0.1 for a
@@ -83,7 +83,7 @@ npelVIMP (modelRun$rfsrc,calc=F)
 npelVIMP (modelRun$rfsrc,calc=T)
 }
 \seealso{
-VIMP information for genpackages used that have VIMP metrics included: \code{\link[randomForest]{importance}},
+For VIMP information about packages used that have the metric build-in: \code{\link[randomForest]{importance}},
   \code{\link[randomForestSRC]{rfsrc}}, and \code{\link[gbm]{summary.gbm}}.
 }
 

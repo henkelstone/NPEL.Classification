@@ -60,7 +60,7 @@
 #'   other than y if fx is also not provided.
 #' @param y (optional) the name of the column of the 'response' variable; defaults to first column if fx is also not provided. It can be
 #'   either categorical or continuous data, and it will attempt to coerce vectors of unknown types (e.g. boolean) into one of these two
-#'   groups, albiet in a rather rudimentary fashion. If it cannot succeed it will complain.
+#'   groups, albeit in a rather rudimentary fashion. If it cannot succeed it will complain.
 #' @param grouping (optional) a transformation vector for input classes; if not provided, no grouping will be used. See
 #'   \code{\link{ecoGroup}} for more information about this technique.
 #' @param echo (optional) should the function report it's progress? Defaults to TRUE, but useful for automation.
@@ -144,7 +144,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #' Generate an estimate for variable importance for nearest neighbour models
 #'
 #' There is no well-established way of determining variable importance for nearest neighbour classifiers. In an effort to generate \emph{some} useful
-#' metric for comparison with other models, we developed this leave-one-out type approach; it is analagous to a variable inflation metric.
+#' metric for comparison with other models, we developed this leave-one-out type approach; it is analogous to a variable inflation metric.
 #' The algorithm proceeds as follows:
 #' \enumerate{
 #'   \item Given a model, find the formula it was generated with.
@@ -165,7 +165,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #' While this algorithm is simple, easy to compute, and applicable to \emph{any} model, it has some (serious) limitations:
 #'
 #' \itemize{
-#'   \item The most notable is that it is not clear that a variable's impact on a model's accuratly is well correlated with the drop in
+#'   \item The most notable is that it is not clear that a variable's impact on a model's accuracy is well correlated with the drop in
 #'   overall accuracy! Sure, this can be one definition of a VIMP metric, but this is much coarser than those use by, for example, random
 #'   forest. Hence, while this function gives some idea of which variables are contributing to accuracy, it is not clear that the scale is
 #'   consistent between variables. Hence, a VIMP of 0.1 for a given variable on a given class may not be the same as a VIMP of 0.1 for a
@@ -198,7 +198,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #'   and \pkg{\link[gbm]{gbm}}.
 #' @param echo (optional) should the function inform the user about it's progress
 #' @return returns a data frame with rows as the variables, and columns being the classes. The first column is the overall VIMP for that variable.
-#' @seealso VIMP information for genpackages used that have VIMP metrics included: \code{\link[randomForest]{importance}},
+#' @seealso For VIMP information about packages used that have the metric build-in: \code{\link[randomForest]{importance}},
 #'   \code{\link[randomForestSRC]{rfsrc}}, and \code{\link[gbm]{summary.gbm}}.
 #'
 #' @examples
@@ -252,7 +252,7 @@ npelVIMP <- function (model, calc=F, echo=T) {
 ##### npelVIF #####
 #' Compute the variable inflation factor of the terms in a formula
 #'
-#' Given an input dataset, this function generates the VIF for each predictor variable. It gives considerably more output than the typcial
+#' Given an input dataset, this function generates the VIF for each predictor variable. It gives considerably more output than the typical
 #' VIF function---see details.
 #'
 #' The function returns a named list of several details from the computation of the VIF scores :
@@ -306,24 +306,30 @@ npelVIF <- function (fx, data) {
 #' that question. There are a number of different metrics used depending primarily on whether the model encodes categorical or continuous
 #' data---see below for details.
 #'
-#' The metrics returned for \emph{categorical} models are:
+#' The metrics returned for \bold{categorical} models are:
 #' \itemize{
 #'   \item \code{confMatrix} a named list of confusion matrices for each model in the list. Each confusion matrix is a data.frame with
 #'     predicted values as rows and actual values as columns.
 #'   \item \code{userAcc} a data frame in which each column represents the user accuracy for a given model, and rows are the accuracies for
-#'     that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission error,
-#'     is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites divided by
-#'     the number sites that the model predicted to be in that class.
+#'     that input class. The final row is the overall user accuracy for that model. User accuracy, the inverse of so-called commission
+#'     error, is the the portion of pixels that are what they were predicted to be; that is, the number of correctly identified sites
+#'     divided by the number sites that the model predicted to be in that class.
 #'   \item \code{prodAcc} a data frame in which each column represents the producer accuracy for a given model, and rows are the accuracies
 #'     for that input class. The final row is the overall producer accuracy for that model. Producer accuracy, the inverse of so-called
-#'     omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by the
-#'     number that are actually of that class.
+#'     omission error, is the percent of pixels that are labelled correctly; that is, the number of correctly identified sites divided by
+#'     the number that are actually of that class.
+#'   \item \code{classLevelAcc} a vector of class-level accuracies---another statistic for measuring accuracy as distinct from producer or
+#'     user error. It is based on omission and commission errors (see producer and user accuracies), such that \eqn{N_ommission} is the
+#'     number of incorrectly classified points in a \emph{column} of the confusion matrix, and \eqn{N_commission} is the number of
+#'     incorrectly classified points in a \emph{row} of the confusion matrix. Given that, class-level accuracy can be computed as:
+#'       \deqn{Acc_{class level} = \frac{N_correct}{N_correct + N_ommission + N_commission}}{Acc_class.level = N_correct / (N_correct +
+#'             N_ommission + N_commission)}
 #'   \item \code{kappa} a vector of kappa values for each model type. The \eqn{\Kappa}-statistic is a measure of how much better this model
-#'     predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected by
-#'     chance, standardized by unity less the probability by chance alone.
+#'     predicts output classes than would be done by chance alone. It is computed as the ratio of the observed accuracy less that expected
+#'     by chance, standardized by unity less the probability by chance alone.
 #'       \deqn{\Kappa = \frac{Accuracy.obs - Agree.chance}{1 - Agreement.chance}}{K = (Acc_obs - Acc_chance) / (1 - Acc_chance)}
 #' }
-#' The metrics returned for \emph{continuous} models are:
+#' The metrics returned for \bold{continuous} models are:
 #' \itemize{
 #'   \item \code{overallAcc} is the overall r-squared, computed by \eqn{1 - \frac{SS.residual}{SS.total}}{1 - SS.residual/SS.total}
 #'   \item \code{mse} is the raw mean squared error, computed by \eqn{mean(SS.residual)/N}
@@ -337,8 +343,9 @@ npelVIF <- function (fx, data) {
 #'   in the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.
 #' @return Note: this function returns different data depending on the whether the model is categorical or continuous:
 #' \itemize{
-#'   \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracy,
-#'     \code{prodAcc} = producer accuracy, \code{overallAcc} = overall accuracy, \code{kappa} = kappa
+#'   \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracies,
+#'     \code{prodAcc} = producer accuracies, \code{classLevelAcc} = class-level accuracies, \code{overallAcc} = overall accuracy,
+#'     \code{kappa} =kappa
 #'   \item \code{continuous} a two element names list: \code{overallAcc} = overall accuracy, \code{mse} = mean squared error
 #' }
 #'
@@ -380,15 +387,17 @@ classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
   prodTot <- apply (conf,2,sum)
   Tot <- sum(conf)
 
-  userAcc <- diag(conf)/userTot                               # User accuracy rates
-  prodAcc <- diag(conf)/prodTot                               # Producer accuracy rates
-  overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy rate
+  userAcc <- diag(conf)/userTot                               # User accuracies
+  prodAcc <- diag(conf)/prodTot                               # Producer accuracies
+  overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy
+  classLevelAcc <- diag(conf)/(userTot+prodTot-diag(conf))         # Class-level accuracies
   kappa <- (Tot*sum(diag(conf)) - sum(userTot*prodTot)) / (Tot^2 - sum(userTot*prodTot))
 
   dimnames(conf) <- list(classNames,classNames)
-  names (userAcc) <- classNames
-  names (prodAcc) <- classNames
-  return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, overallAcc=overallAcc, kappa=kappa))
+  names (userAcc)  <- classNames
+  names (prodAcc)  <- classNames
+  names (classLevelAcc) <- classNames
+  return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, classLevelAcc=classLevelAcc, overallAcc=overallAcc, kappa=kappa))
 }
 classAcc.Cont <- function (pred, valid, digits, classNames) {
   SS.res <- sum( (pred-valid)^2 )
@@ -507,7 +516,7 @@ validate <- function(model, valid,...){
 #' mE <- modelAccs (modelRun, ecoGroup[['domSpecies','labels']])
 #' str(mE,1)
 #'
-#' # Contiuous Data
+#' # Continuous Data
 #' modelRun <- generateModels (data = siteData,
 #'                             modelTypes = contModels,
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
@@ -587,7 +596,7 @@ modelsValid <- function(models, valid, classNames=NULL, calc=F, echo=T){
 
 
 ##### wrapAccs.Cat #####
-#' Thin wrappers to package up categorical/continous accuracies/validation data for a group of models.
+#' Thin wrappers to package up categorical/continuous accuracies/validation data for a group of models.
 #'
 #' These functions are intended for internal use---as such no defaults are provided and there is little to no internal parameter
 #' checking. Using this function it is possible, however, to do things like recover VIMP data using a validating dataset, which is not

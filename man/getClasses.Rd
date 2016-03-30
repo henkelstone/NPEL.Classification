@@ -14,7 +14,7 @@ a character vector of classes
 }
 \description{
 This function recovers the classes present in this model That is, it returns the levels used in the original
-predicted variable. Of course, this is only relevent if the model was built using categorical data; otherwise
+predicted variable. Of course, this is only relevant if the model was built using categorical data; otherwise
 an error will be returned.
 }
 \note{

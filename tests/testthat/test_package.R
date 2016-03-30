@@ -5,4 +5,5 @@ library(NPEL.Classification)
 context("Package")
 cat('\n')
 
-test_examples()
+test_examples('../../man')
+# testthat::test_examples('./man')

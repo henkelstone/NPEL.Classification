@@ -2,7 +2,7 @@
 % Please edit documentation in R/Plot.R
 \name{plotTiles}
 \alias{plotTiles}
-\title{Outputs multiple plots of multiple datafiles into a single folder}
+\title{Outputs plots of multiple data files into a single folder}
 \usage{
 plotTiles(path, base, extension, models, type = "pdf", ...)
 }
@@ -20,6 +20,6 @@ plotTiles(path, base, extension, models, type = "pdf", ...)
 \item{...}{other parameters to pass to the device function}
 }
 \description{
-Outputs multiple plots of multiple datafiles into a single folder
+Outputs plots of multiple data files into a single folder
 }
 

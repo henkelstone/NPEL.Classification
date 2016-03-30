@@ -44,7 +44,7 @@ of data are returned are: the model being used, whether the data is categorical 
 
 Model packages/types:
 \itemize{
-  \item Random Forest models are probabilistic---that is, they output the class that has the largest number of occurences in each
+  \item Random Forest models are probabilistic---that is, they output the class that has the largest number of occurrences in each
   individual tree. Hence they can output a wide variety of different statistics.
   \item Nearest Neighbour algorithms, by their very nature do not generate class probabilities; they output information about the nearest
   existing data-point (in phase space). Hence, the option to output probabilities is disabled for the two primitive nearest-neighbour
@@ -52,8 +52,8 @@ Model packages/types:
   \item The GBM package reports probabilities, so if desired, this can be used as a measure of certainty.
 }
 
-Input data type: for continuous data it is meaningful to talk about the probability of a class occuring, especially in contrast to the
-probability of another class occuring. Of course with continuous data, this doesn't make sense; a model generated on continuous data
+Input data type: for continuous data it is meaningful to talk about the probability of a class occurring, especially in contrast to the
+probability of another class occurring Of course with continuous data, this doesn't make sense; a model generated on continuous data
 (that is a regression model) can only report it's best estimate of the continuous variable at each point.
 
 User preference: given those particulars, the user can choose what output they might want:

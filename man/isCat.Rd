@@ -2,18 +2,21 @@
 % Please edit documentation in R/OOP_util.R
 \name{isCat}
 \alias{isCat}
-\title{Is the object categorical (as opposed to continuous)}
+\alias{isCont}
+\title{Is the object categorical or continuous}
 \usage{
 isCat(x)
+
+isCont(x)
 }
 \arguments{
 \item{x}{the object to test}
 }
 \value{
-TRUE if the object is categorical, or is a model built on categorical data, FALSE otherwise
+TRUE if the object is categorical/continuous, or is a model built on categorical/continuous data, FALSE otherwise
 }
 \description{
-Checks if an object is categorical (or continuous). Currnetly accepts either a vector, presumably from a data frame,
+Checks if an object is categorical (or continuous). Currently accepts either a vector, presumably from a data frame,
 or a model object. In the case of the latter, it will check whether the model was built using categorical data.
 }
 \details{
@@ -24,10 +27,11 @@ conditions which it expects to hold, and there may be cases in which neither set
 isCat(siteData$ecoType)
 isCat(siteData$slope)
 \dontrun{
-isCat(model)
-}
-}
-\seealso{
-\code{\link{isCont}} for the complementary test.
+isCat(model) }
+
+isCont(siteData$ecoType)
+isCont(siteData$slope)
+\dontrun{
+isCont(model) }
 }
 

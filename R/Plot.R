@@ -61,7 +61,7 @@ plotTile <- function(gp, layers, discrete, colours, labels=NULL,...){
 }
 
 ##### plotTiles #####
-#' Outputs multiple plots of multiple datafiles into a single folder
+#' Outputs plots of multiple data files into a single folder
 #' @param path the path of the folder
 #' @param base the base part of the filename
 #' @param extension the filename 'extension'; may contain more than the strict extension

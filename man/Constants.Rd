@@ -18,9 +18,9 @@ Global constants that define the bounds of this packages functionality
 
 \itemize{
   \item \code{suppModels}: supported models---the model types (packages) this package currently supports.
-  \item \code{probModels}: probabalistic models---models types that will return probabilities when created on categorical data.
+  \item \code{probModels}: probabilistic models---models types that will return probabilities when created on categorical data.
   \item \code{contModels}: continuous models---models that can be used (natively) with continuous variables. Of course other
-    classification algrotihms, for example nearest neighbour, can be run on an index variable then continuous data can then be
+    classification algorithms, for example nearest neighbour, can be run on an index variable then continuous data can then be
     \code{\link[=impute]{imputed}} from this.
 }
 }

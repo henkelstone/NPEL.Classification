@@ -28,9 +28,8 @@ The nearest neighbour models in package:FNN and package:class do not enclose the
   If you are getting very strange errors from getData, consider this\ldots The raster package also has a getData
   function that is not overloaded. Depending on where the two packages fall in the search path, it may be that
   raster::getData is getting called instead of NPEL.Classification::getData. See help on \code{\link{search}} for a
-  starting point on search paths. The following hack may help.
-
-  \code{detach (package:NPEL.Classification)}\cr
-  \code{library (NPEL.Classification)}\cr
+  starting point on search paths. The following hack may help.\cr\cr
+  \code{detach (package:NPEL.Classification)}
+  \code{library (NPEL.Classification)}
 }
 

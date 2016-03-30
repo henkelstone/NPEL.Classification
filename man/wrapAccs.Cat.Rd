@@ -3,7 +3,7 @@
 \name{wrapAccs.Cat}
 \alias{wrapAccs.Cat}
 \alias{wrapAccs.Cont}
-\title{Thin wrappers to package up categorical/continous accuracies/validation data for a group of models.}
+\title{Thin wrappers to package up categorical/continuous accuracies/validation data for a group of models.}
 \usage{
 wrapAccs.Cat(models, valid, func, VIMP, calc, classNames, echo)
 

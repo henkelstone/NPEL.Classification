@@ -15,7 +15,7 @@ npelVIF(fx, data)
 a list with the following elements: list (vif, rSquared, est, stdErr, t.value, p.value). See Details
 }
 \description{
-Given an input dataset, this function generates the VIF for each predictor variable. It gives considerably more output than the typcial
+Given an input dataset, this function generates the VIF for each predictor variable. It gives considerably more output than the typical
 VIF function---see details.
 }
 \details{

@@ -26,7 +26,7 @@ layer should be in it's own geoTiff, although multiple bands within a geoTiff ar
 }
 \examples{
 \dontrun{
-# Read egTile from the provided geoTiff's; gisPath must point to package installion folder.
+# Read egTile from the provided geoTiff's; gisPath must point to package installation folder.
 path <- system.file("extdata", "egTile", package = "testdat")
 rData <- readTile(gisPath, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 

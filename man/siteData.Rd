@@ -41,24 +41,12 @@ example manageable.
   \item \code{year} the year the field site was visited
   \item \code{slope} field recorded slope of the site, useful to compare with DEM data
   \item \code{aspect} field recorded aspect of the site, useful to compare with DEM data
-  \item \code{lfhD} depth of LFH (litter, fibric, humic) soil layer
-  \item \code{waterD} depth to water
-  \item \code{bedrockD} depth to bedrock
-  \item \code{parentMaterial} the type of parent material (soil) found at the site
-  \item \code{effTexture} the effective texture of the soil
   \item \code{ecoType} the ecotype the site was classed as
   \item \code{base.1:7} Landsat base layers
-  \item \code{evi} enhanced vegetation index -- derived from Landsat data
-  \item \code{ndvi} normalized difference vegetation index -- derived from Landsat data
-  \item \code{ndwi} normalized difference water index -- derived from Landsat data
-  \item \code{mavi} modified soil-adjusted vegetation index -- derived from Landsat data
   \item \code{grnns, wetness, brtns} the so-called \sQuote{Tasseled-Cap} variables; they reflect greenness, wetness, and brightness respectively
   \item \code{dem} the basic elevations from the digital elevation model
   \item \code{slp} slope, as derived from the DEM
   \item \code{asp} aspect, as derived from the DEM; note that different algorithms use different values for NA, a reliable filter is that aspect is NA when slope == 0
-  \item \code{srr} surface relief ratio, a measure of surface roughness -- derived from the DEM
-  \item \code{cti} compound topographic index, a measure of surface roughness -- derived from the DEM
-  \item \code{ri} roughness index, a measure of surface roughness -- derived from the DEM
   \item \code{hsd} hillshade, a measure of how much light the surface receives -- derived from the DEM
 }
 }
