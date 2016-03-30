@@ -41,6 +41,19 @@ The nearest neighbour models in package:FNN and package:class do not enclose the
 }
 \section{Warning}{
 
-  I am concerned that there is a bug in FNN::knn and possibly class::knn ??? describe or remove this note
+  Note there is a bug in FNN (and possibly the \pkg{class} package) that means that the class reported, and the associated probability
+  is incorrect. As would be expected it's a bit subtle, but it goes as follows:
+  \itemize{
+    \item the data is correct when it is returned from the C function;
+    \item in cases where k > 1, i.e. we are looking for more than the first nearest neighbour, it uses \code{table} to figure out if any
+      of the nearest neighbours are of the same class;
+    \item if so, it returns that class as the most likely class with the probability of it's occurrence;
+    \item if not, it returns the first class in the list.
+  }
+  However, table sorts the input data, so the first class in the list is \emph{not necessarily} the closest neighbour. Hence, in cases
+  where there is no repetition of classes, that is, all the nearest \code{k} neighbours are of unique classes, the function returns the
+  first alpha-numeric class, \emph{not} the class of the nearest neighbour. I have written getFitted to return the class of the nearest
+  neighbour, but it does not check for repeat classes in the k nearest neighbours. I was not able to do the same for the \pkg{class}
+  package as the C function does not return the indices of nearest neighbours.
 }
 

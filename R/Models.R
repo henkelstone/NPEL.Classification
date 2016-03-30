@@ -451,7 +451,7 @@ classAcc.Cont <- function (pred, valid, digits, classNames) {
 #' @export
 validate <- function(model, valid,...){
   x <- y <- NULL
-  fx2vars (getFormula(model),x,y,names=names(valid)) #??? test that this throws an error if a column is missing
+  fx2vars (getFormula(model),x,y,names=names(valid))
   res <- buildPredict(model)(model, valid[,x])                # rFSRC is cranky about types and levels in y variables so just don't supply it as it isn't necessary
   if (isCat(model)) res <- suppressWarnings(prob2class(res))  # prob2class throws an warning if there is only one column; this should only occur if model is FNN
   classAcc(res,valid[,y],...)
