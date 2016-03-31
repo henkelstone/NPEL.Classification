@@ -67,6 +67,8 @@ extractPoints <- function (rData, vData, locs, na.omit=T) {
   cbind(as.data.frame(vData)[valid,],pixel[valid,])
 }
 
+vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SHP/all_sitesLane')
+
 ##### writeTile #####
 #' Compute and output a landscape
 #'
@@ -213,7 +215,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
     if (isCont(model)) {
       outData <- list(prob)
     } else {
-      if( pmatch ('fnn',class(model),nomatch=0) ) { outData <- factorValues(prob) } # ??? can get rid of this as prob2class will return the same while throwing an error...
+      if( pmatch ('fnn',class(model),nomatch=0) ) { outData <- factorValues(prob) } # Technically could get rid of this as prob2class will return the same, but it avoids a warning...
       else {
         #      outClass <- as.numeric(colnames(prob)[ apply(prob, 1, which.max) ])
         outData <- list ( (if ('class' %in% layers) outClass <- factorValues(prob2class(prob))),
@@ -287,6 +289,21 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' the other methods included in this package are all able to generate continuous variable output directly. Imputation has only the benefit
 #' that it is possible to produce multiple output from a single rendering simply by imputing a different (suite of) variable(s).
 #'
+#' Note: that the notation used for fx may not be intuitive: the \code{y} variable, usually the \sQuote{dependent} variable is used as the
+#' pivot, which can intuitively seem like the dependent variable; in a like way the \code{x} variables, which are usually the
+#' \sQuote{independent} variables, are output here. Use caution when specifying the formula; that this function expects only a single term
+#' on the left and multiple terms on the right is a good clue as to which variables should be where.
+#'
+#' @param inRdata a raster* object with the spatial data---typically a map of indices to the lookup table.
+#' @param iData or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g.
+#'   a site characteristic such as cover, tree density, species composition, etc.
+#' @param outFilename a file to hold the output resulting raster object.
+#' @param fx (optional) a formula object specifying which column(s) in \code{iData} to output; if omitted, it will either be computed from x
+#'   and y, or assumed to be all columns in \code{iData}.
+#' @param x (optional) a list of columns from \code{iData} to output; will be computed from fx if omitted.
+#' @param y (optional) the pivot column that connects the model and the imputation data; if neither fx nor this is specified then it is
+#'   assumed to be the first column in \code{iData}.
+#'
 #' @section Warning:
 #' In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
 #' \link{raster} package.
@@ -296,16 +313,6 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' some glitch or error, and a mismapping could result between factor indices and actual values.
 #'
 #' \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
-#'
-#' @param inRdata a raster* object with the spatial data---typically a map of indices to the lookup table.
-#' @param iData or imputation data; the lookup table that takes map values (e.g. \code{siteID}) and converts them to some other value, e.g.
-#'   a site characteristic such as cover, tree density, species composition, etc.
-#' @param outFilename a file to hold the output resulting raster object.
-#' @param fx (optional) a one-sided formula specifying which column(s) in \code{iData} to output; will either be computed from x if omitted,
-#'   or assume to be all columns in \code{iData}.
-#' @param x (optional) a list of columns from \code{iData} to output; will be computed from fx if omitted.
-#' @param y (optional) the pivot column that connects the model and the imputation data; if neither fx nor this is specified then it is
-#'   assumed to be the first column in \code{iData}.
 #'
 #' @return a raster.brick of the imputed data with as many layers as specified.
 #' @seealso
@@ -330,7 +337,7 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 impute <- function(inRdata, iData, outFilename, fx=NULL, x=NULL, y=NULL) {
   if (file.access(dirname(outFilename),2)) stop(paste0("impute: Not able to write to the specified folder: ",dirname(outFilename)))
   fx2vars(fx, x, y, names(iData))
-  if (class(inRdata) %in% c('RasterStack','RasterBrick')) inRdata <- inRdata$y  # Just in case this was a multilayer raster
+  if (class(inRdata) %in% c('RasterStack','RasterBrick')) inRdata <- inRdata[[y]]  # Just in case this was a multilayer raster
   iData <- sapply(iData[,c(y,x)], function(x){
     if ('numeric' %in% class(x)) return (x);
     return (as.numeric(factor(x)))
@@ -343,7 +350,7 @@ impute <- function(inRdata, iData, outFilename, fx=NULL, x=NULL, y=NULL) {
   pb <- txtProgressBar (0,bS$n,style=3)
   for (i in 1:bS$n) {
     outData <- as.vector(raster::getValues(inRdata,bS$row[i],bS$nrows[i]))
-    outImage <- raster::writeValues(outImage, iData[outData,x], bS$row[i])      # The only real working line...
+    outImage <- raster::writeValues(outImage, iData[outData,x,drop=F], bS$row[i])      # The only real working line...
     setTxtProgressBar(pb,i)
   }
   close(pb)

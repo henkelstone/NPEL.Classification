@@ -159,7 +159,7 @@ NULL
 #' Good luck and I hope this work does what you need it to do...
 #'
 #' @section Warning:
-#' NPEL.Classification must be \emph{before} \pkg{raster} on the search path; in particular \getData{getData} is a valid function in both
+#' NPEL.Classification must be \emph{before} \pkg{raster} on the search path; in particular \code{getData} is a valid function in both
 #' packages. If you are getting very unusual errors, consider detaching and reattaching this package so it is found first.
 #'
 #' @name NPEL.Classification
