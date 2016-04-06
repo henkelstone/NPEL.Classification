@@ -382,7 +382,7 @@ classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
   if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
 
-  conf <- table(pred,valid)                                   # Confusion matrix
+  conf <- xtabs(formula='~pred+valid',data=data.frame(pred,valid))
   userTot <- apply (conf,1,sum)
   prodTot <- apply (conf,2,sum)
   Tot <- sum(conf)
@@ -390,7 +390,7 @@ classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
   userAcc <- diag(conf)/userTot                               # User accuracies
   prodAcc <- diag(conf)/prodTot                               # Producer accuracies
   overallAcc <- sum(diag(conf))/Tot                           # Overall accuracy
-  classLevelAcc <- diag(conf)/(userTot+prodTot-diag(conf))         # Class-level accuracies
+  classLevelAcc <- diag(conf)/(userTot+prodTot-diag(conf))    # Class-level accuracies
   kappa <- (Tot*sum(diag(conf)) - sum(userTot*prodTot)) / (Tot^2 - sum(userTot*prodTot))
 
   dimnames(conf) <- list(classNames,classNames)
@@ -594,8 +594,94 @@ modelsValid <- function(models, valid, classNames=NULL, calc=F, echo=T){
   else stop("validModels: model satisfied neither categorical or continuous criteria.")
 }
 
+##### nnErrMap #####
+#' Generate a map of the distance--or error--from a pixel to it's nearest neighbouror.
+#'
+#' @details
+#' One way to estimate the accuracy/confidence of a nearest neighbour map, is to compute the distance from a pixel to it's nearest
+#' neighbour. It is important to understand that this 'distance' is not the spatial distance, i.e. the distance along the earths surface,
+#' but rather the distance in the space in which this was the nearest neighbour, that is, the distance in the statistical space used. For
+#' example, this might be the so-called \sQuote{Tasseled Cap} variables.
+#'
+#' Since it is possible to measure distance through parameter space in non-Euclidean ways, the \code{kernal} parameter is provided. If this
+#' argument is specified it should be a function in the form \code{f(a,b)} in which \code{a} and b are the vectors of data for this pixel
+#' and it's nearest neighbour. If \code{kernel} is not provided it will default to the Euclidean distance, that is:
+#' \deqn{ distance = \sqrt{\sum{(\vec{a}-\vec{b})^{2}}} }{distance = sqrt(sum( (a-b)^2 ))}
+#'
+#' Distance, however, is not accuracy; in some cases though the two \emph{may} be linked. There could be a number of ways to determine this
+#' relationship: linear modelling, piecewise linear modelling, logit models, etc. Once a model is developed, it is relatively simply to
+#' predict accuracy using (other) measures of distance. Example code for doing this is included below.
+#'
+#' @param model the model used to generate the ID layer
+#' @param idLayer the layer identifying which neighbour is the nearest of each pixel
+#' @param rData a Raster* object with the 'other' raster data, that is all the data used to generate the model, and hence the distance from
+#'   this pixel to the nearest neighbour. Note: this must be the same extents and alignment as idLayer
+#' @param outFilename the filename to which to write the data as it is generated.
+#' @param kernel (optional) the function used to compute the distance, see details.
+#' @param weight (optional) a function used to convert the distance to an error, see details.
+#'
+#' @return a raster* object representing distances/kernel values, or the error from \code{weight} function if specified.
+#' @seealso
+#'   \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.\cr
+#'   \code{\link{impute}} for imputing other values from the map of nearest neighbours.
+#' @export
+#'
+#' @examples
+#' fx <- formula('siteID ~ brtns + grnns + wetns + dem + slp + asp + hsd')
+#' nnData <- cbind(siteID=factor(1:nrow(siteData)), siteData)
+#' models <- generateModels(nnData, suppModels[!suppModels %in% contModels], fx)
+#'
+#' fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
+#' egData <- writeTile (models[[1]], egTile, fNN, layers='class')
+#' names (egData) <- 'siteID'
+#'
+#' fEMap <- paste0(dirname(tempfile()),'/Tmp_nnEMap.tif')
+#' nnEMap <- nnErrMap(models[[1]], egData, egTile, fEMap)
+#' plot (nnEMap)
+#'
+#' ## Generate a distance/accuracy relationship
+#' inputClass <- cbind(ecoType=siteData$ecoType, getData(models[[1]]))
+#' predClass <- inputClass[getFitted(models[[1]]),]
+#'
+#' dfIn <- cbind(inputClass[,-(1:2)], predClass[,-(1:2)])
+#' nl <- ncol(dfIn)/2
+#' kernel <- function(a,b){ sqrt(sum((a-b)^2)) }
+#' df <- data.frame(dist=apply(dfIn,1, function(x){kernel(x[1:nl],x[(nl+1):(2*nl)])}),
+#'                  correct=as.numeric(inputClass$ecoType == predClass$ecoType))
+#' rm (dfIn,nl,kernel)
+#'
+#' plot (df$dist,df$correct)
+#' corrLm <- lm ('correct~dist', df)
+#' summary (corrLm)                # No significant relationship in this case
+#' abline (corrLm)
+#'
+#' # Convert map to estimated accuracies afterwards; not meaningful with non-significant model!
+#' Func <- function(x){ corrLm$coefficients[1] + x*corrLm$coefficients[2] }
+#' plot(calc(nnEMap, Func))
+#'
+#' unlink (fNN)
+#' unlink (fEMap)
+nnErrMap <- function(model, idLayer, rData, outFilename, kernel=NULL, weight=NULL) {
+  if (raster::nlayers(idLayer) > 1) {
+    warning("nnDist: only a single id layer expected; using the top layer.")
+    idLayer <- idLayer[[1]]
+  }
+  rData <- rData[[ all.vars(getFormula(model))[-1] ]]
+  genData <- getData(model)[,c(names(idLayer), names(rData))]
+  nl <- raster::nlayers(rData)
 
-##### wrapAccs.Cat #####
+  func <- function(x){ as.matrix(genData[x,-1]) }
+  nnData <- raster::calc(idLayer, func, forceapply=T)
+  rData <- stack(rData, nnData)
+
+  if (is.null(kernel)) { kernel <- function(a,b){ sqrt(sum((a-b)^2)) } }
+  if (is.null(weight)) { func <- function(x){        kernel(x[1:nl],x[(nl+1):(2*nl)])  } }
+                  else { func <- function(x){weight( kernel(x[1:nl],x[(nl+1):(2*nl)]) )} }
+  if (attr(model,'args')$'scale') rData <- raster::scale(rData)
+  return (raster::calc(rData,func))
+}
+
+##### wrapAccs.Cat/Cont #####
 #' Thin wrappers to package up categorical/continuous accuracies/validation data for a group of models.
 #'
 #' These functions are intended for internal use---as such no defaults are provided and there is little to no internal parameter

@@ -51,6 +51,12 @@ pivot, which can intuitively seem like the dependent variable; in a like way the
 \sQuote{independent} variables, are output here. Use caution when specifying the formula; that this function expects only a single term
 on the left and multiple terms on the right is a good clue as to which variables should be where.
 }
+\section{Note}{
+
+An analysis that can be useful is to look at the frequency each site is used as a nearest neighbour. This is straightforward using the
+output of the imputation map. Example code is given below.
+}
+
 \section{Warning}{
 
 In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
@@ -63,22 +69,31 @@ some glitch or error, and a mismapping could result between factor indices and a
 \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 }
 \examples{
-iData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
-models <- generateModels(iData, suppModels[!suppModels == contModels][1],
-                         x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
+fx <- formula('siteID ~ brtns + grnns + wetns + dem + slp + asp + hsd')
+nnData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
+nnData <- get_all_vars(fx, nnData)
+models <- generateModels(nnData, suppModels[!suppModels \%in\% contModels], fx)
 
 fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
 egData <- writeTile (models[[1]], egTile, fNN, layers='class')
 
 fImpute <- paste0(dirname(tempfile()),'/Tmp_nnImpute.tif')
-egImpute <- impute (egData, iData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
+egImpute <- impute (egData, nnData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
 plot (egImpute)
+
+## Frequency/sensitivity of nearest neighbour site dependency
+freq <- table(getValues(egData))
+plot (freq/sum(freq), ylab='freq')
+hiFreq <- freq[freq > 100]
+index <- as.integer(rownames(hiFreq))
+print (cbind(freq=hiFreq, nnData[nnData$siteID \%in\% index,]))
 
 unlink (fNN)
 unlink (fImpute)
 }
 \seealso{
-\code{\link{factor}} and \code{\link{ecoGroup}} for more information on the factor index gotcha.
-  \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.
+\code{\link{factor}} and \code{\link{ecoGroup}} for more information on the factor index gotcha.\cr
+  \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.\cr
+  \code{\link{nnErrMap}} for outputting nearest neighbour distances, and generating accuracies from these.
 }
 

@@ -169,7 +169,11 @@ vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SH
 #'            egTile,
 #'            'Renderings/identity_reduced_', gisPath, '_IB3.tif',
 #'            layers=c('class'))
-#' }
+#'
+#' # To mask of the water areas, i.e. to set them to some unique water value
+#' data(water)
+#' plot (egTile)
+#' plot (mask(egTile,water,maskvalue=1,updatevalue=NA)) }
 #' @export
 writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold=0, labels.all=NULL, ...) {
   # Parameter checks and setup
@@ -304,6 +308,10 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' @param y (optional) the pivot column that connects the model and the imputation data; if neither fx nor this is specified then it is
 #'   assumed to be the first column in \code{iData}.
 #'
+#' @section Note:
+#' An analysis that can be useful is to look at the frequency each site is used as a nearest neighbour. This is straightforward using the
+#' output of the imputation map. Example code is given below.
+#'
 #' @section Warning:
 #' In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
 #' \link{raster} package.
@@ -316,21 +324,30 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #'
 #' @return a raster.brick of the imputed data with as many layers as specified.
 #' @seealso
-#'   \code{\link{factor}} and \code{\link{ecoGroup}} for more information on the factor index gotcha.
-#'   \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.
+#'   \code{\link{factor}} and \code{\link{ecoGroup}} for more information on the factor index gotcha.\cr
+#'   \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.\cr
+#'   \code{\link{nnErrMap}} for outputting nearest neighbour distances, and generating accuracies from these.
 #' @export
 #'
 #' @examples
-#' iData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
-#' models <- generateModels(iData, suppModels[!suppModels == contModels][1],
-#'                          x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='siteID')
+#' fx <- formula('siteID ~ brtns + grnns + wetns + dem + slp + asp + hsd')
+#' nnData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
+#' nnData <- get_all_vars(fx, nnData)
+#' models <- generateModels(nnData, suppModels[!suppModels %in% contModels], fx)
 #'
 #' fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
 #' egData <- writeTile (models[[1]], egTile, fNN, layers='class')
 #'
 #' fImpute <- paste0(dirname(tempfile()),'/Tmp_nnImpute.tif')
-#' egImpute <- impute (egData, iData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
+#' egImpute <- impute (egData, nnData, fImpute, formula('siteID~ecoType+bedrockD+parentMaterial'))
 #' plot (egImpute)
+#'
+#' ## Frequency/sensitivity of nearest neighbour site dependency
+#' freq <- table(getValues(egData))
+#' plot (freq/sum(freq), ylab='freq')
+#' hiFreq <- freq[freq > 100]
+#' index <- as.integer(rownames(hiFreq))
+#' print (cbind(freq=hiFreq, nnData[nnData$siteID %in% index,]))
 #'
 #' unlink (fNN)
 #' unlink (fImpute)

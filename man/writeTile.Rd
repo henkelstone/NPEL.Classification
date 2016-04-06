@@ -113,7 +113,11 @@ writeTiles(modelRun,
            egTile,
            'Renderings/identity_reduced_', gisPath, '_IB3.tif',
            layers=c('class'))
-}
+
+# To mask of the water areas, i.e. to set them to some unique water value
+data(water)
+plot (egTile)
+plot (mask(egTile,water,maskvalue=1,updatevalue=NA)) }
 }
 \seealso{
 \code{\link{writeTiles}} for an automated way to render all models in a model block
