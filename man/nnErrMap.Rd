@@ -2,7 +2,7 @@
 % Please edit documentation in R/Models.R
 \name{nnErrMap}
 \alias{nnErrMap}
-\title{Generate a map of the distance--or error--from a pixel to it's nearest neighbouror.}
+\title{Generate a map of the distance --- or error --- from a pixel to it's nearest neighbour.}
 \usage{
 nnErrMap(model, idLayer, rData, outFilename, kernel = NULL, weight = NULL)
 }
@@ -24,13 +24,13 @@ this pixel to the nearest neighbour. Note: this must be the same extents and ali
 a raster* object representing distances/kernel values, or the error from \code{weight} function if specified.
 }
 \description{
-Generate a map of the distance--or error--from a pixel to it's nearest neighbouror.
+Generate a map of the distance --- or error --- from a pixel to it's nearest neighbour.
 }
 \details{
 One way to estimate the accuracy/confidence of a nearest neighbour map, is to compute the distance from a pixel to it's nearest
 neighbour. It is important to understand that this 'distance' is not the spatial distance, i.e. the distance along the earths surface,
 but rather the distance in the space in which this was the nearest neighbour, that is, the distance in the statistical space used. For
-example, this might be the so-called \sQuote{Tasseled Cap} variables.
+example, this might be the so-called \sQuote{Tasselled Cap} variables.
 
 Since it is possible to measure distance through parameter space in non-Euclidean ways, the \code{kernal} parameter is provided. If this
 argument is specified it should be a function in the form \code{f(a,b)} in which \code{a} and b are the vectors of data for this pixel

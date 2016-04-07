@@ -1,7 +1,7 @@
 Package: NPEL.Classification
 Type: Package
 Title: Classifaction and data-handling routines for NPEL Caribou Project
-Version: 0.3.4
+Version: 0.3.5
 Date: 2015-10-07
 Author: Jonathan Henkelman <jonathan.henkelman@usask.ca>
 Maintainer: Jonathan Henkelman <jonathan.henkelman@usask.ca>

@@ -55,13 +55,13 @@ readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
 #' library (maptools)
 #' vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 #' siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
-#' detach ('package:maptools',unload=T)
+#' detach ('package:maptools',unload=TRUE)
 #' @export
-extractPoints <- function (rData, vData, locs, na.omit=T) {
+extractPoints <- function (rData, vData, locs, na.omit=TRUE) {
   spPoints <- sp::SpatialPoints(vData[,c(locs[1],locs[2])], proj4string=rData@crs)
   pixel <- raster::extract(rData, spPoints)
   if (is.vector(pixel)) pixel <- as.matrix(pixel)     # If rData is a layer it returns a vector; convert it to a matrix so apply will work
-  valid <- apply (pixel,1,function(x){sum(x!=0, na.rm=T)})
+  valid <- apply (pixel,1,function(x){sum(x!=0, na.rm=TRUE)})
   valid[!valid & !na.omit] <- 1
   valid <- valid!=0
   cbind(as.data.frame(vData)[valid,],pixel[valid,])
@@ -208,7 +208,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
   # Create the shell of a raster.brick for holding output
   outImage <- raster::brick(inRdata, values=FALSE, nl=length(layers)+n.all)
   names (outImage) <- c(layers,labels.all)
-  outImage <- raster::writeStart(outImage, filename=outFilename, format='GTiff', overwrite=T)
+  outImage <- raster::writeStart(outImage, filename=outFilename, format='GTiff', overwrite=TRUE)
   bS <- raster::blockSize(inRdata)
 
   # Inner loop: step through each data block, run that data through our classifier (model), generate the required layers, and output the results to a datafile.
@@ -228,7 +228,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
                           (if (n.all > 0) prob) )
       }
     }
-    outImage <- raster::writeValues (outImage, matrix(unlist(outData),ncol=raster::nlayers(outImage),byrow=F), bS$row[i])
+    outImage <- raster::writeValues (outImage, matrix(unlist(outData),ncol=raster::nlayers(outImage),byrow=FALSE), bS$row[i])
     setTxtProgressBar (pb,i)
   }
   close (pb)
@@ -263,7 +263,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
 #' @examples
 #' # See the examples at writeTile.
 #' @export
-writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo=T, ...) {
+writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo=TRUE, ...) {
   for (m in models) {
     fName <- paste0(path, base, class(m)[[1]], extension)
     if (echo) print (paste0('Writing: ',fName,' ...'))
@@ -283,7 +283,7 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' assigning that pixel the value (of the environmental variable) from that site. So if this pixel is nearest (in phase space) to site
 #' No.153, then we can infer (impute) that it is also most likely to have similar environmental characteristics. This is significantly
 #' better than generating a map of classes, then inferring values from the mean of the class as there is a huge amount of information lost
-#' in mapping \code{N} sites to \code{k} classes.
+#' in mapping \code{N} sites to \code{k} classes, especially where \eqn{N >> k}.
 #'
 #' This function is essentially similar to the SQL/database command JOIN; that is, it joins two groups of data using a common column, such
 #' that every time a value \code{y} occurs in the first table, some or all of the addition columns in the second table \code{x} are appended
@@ -314,11 +314,11 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #'
 #' @section Warning:
 #' In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
-#' \link{raster} package.
-#' To this end, if the data is found to be other than numeric, it is converted to numeric using the command
-#' \code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors. It
-#' \emph{should} be possible to recover the values of the indices using this same typecast, however, there is a risk that there could be
-#' some glitch or error, and a mismapping could result between factor indices and actual values.
+#' \pkg{\link{raster}} package. To this end, if the data is found to be other than numeric, it is converted to numeric using the command
+#' \code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors (see
+#' warning section for \code{\link{factor}}. It \emph{should} be possible to recover the values of the indices using this same typecast,
+#' however, there is a risk that there could be some glitch or error, and a mis-mapping could result between factor indices and actual
+#' values.
 #'
 #' \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 #'
@@ -362,12 +362,12 @@ impute <- function(inRdata, iData, outFilename, fx=NULL, x=NULL, y=NULL) {
 
   outImage <- raster::brick(inRdata, values=FALSE, nl=length(x))
   names(outImage) <- x
-  outImage <- raster::writeStart(outImage, filename=outFilename, format='GTiff', overwrite=T)
+  outImage <- raster::writeStart(outImage, filename=outFilename, format='GTiff', overwrite=TRUE)
   bS <- raster::blockSize(inRdata)
   pb <- txtProgressBar (0,bS$n,style=3)
   for (i in 1:bS$n) {
     outData <- as.vector(raster::getValues(inRdata,bS$row[i],bS$nrows[i]))
-    outImage <- raster::writeValues(outImage, iData[outData,x,drop=F], bS$row[i])      # The only real working line...
+    outImage <- raster::writeValues(outImage, iData[outData,x,drop=FALSE], bS$row[i])      # The only real working line...
     setTxtProgressBar(pb,i)
   }
   close(pb)

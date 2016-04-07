@@ -94,7 +94,7 @@
 #'                             grouping = ecoGroup[['domSpecies','transform']],
 #'                             gbm.args = list (interaction.depth=7, shrinkage=0.005, cv.folds=0) )
 #' @export
-generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=NULL, echo=T, rf.args=NULL, nn.args=NULL, gbm.args=NULL) {
+generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=NULL, echo=TRUE, rf.args=NULL, nn.args=NULL, gbm.args=NULL) {
   # Preprocess and check fx, x, y
   fx2vars(fx, x, y, names(data))
   if (isCat(data[,y])) {
@@ -108,10 +108,10 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
     default[names(default) %in% names(passed)] <- NULL
     c(passed,default)
   }
-  rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=F))
-  nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=T))
+  rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=FALSE))
+  nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=TRUE))
   gbm.args <- replaceArgs (gbm.args, list(n.trees=1000, keep.data=TRUE))
-#  svm.args <- replaceArgs (svm.args, list(scale=F, probability=T))
+#  svm.args <- replaceArgs (svm.args, list(scale=FALSE, probability=TRUE))
 
   # Group the dataset if necessary, and trim it to contain only the used variables
   if (!isCat(data[,y]) && !is.null(grouping)) {
@@ -194,10 +194,11 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #'
 #' @param model the classifier to test
 #' @param calc (optional) should the function recalculate the VIMP; that is, if the model is one of the types that computes VIMP during
-#'   generation, should we recalculate it, or use the pre-existing VIMP; currently: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
-#'   and \pkg{\link[gbm]{gbm}}.
+#'   generation, should we recalculate it, or use the pre-existing VIMP; currently: \pkg{\link[randomForest]{randomForest}},
+#'   \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}, and \pkg{\link[gbm]{gbm}}.
 #' @param echo (optional) should the function inform the user about it's progress
-#' @return returns a data frame with rows as the variables, and columns being the classes. The first column is the overall VIMP for that variable.
+#' @return returns a data frame with rows as the variables, and columns being the classes. The first column is the overall VIMP for that
+#'   variable.
 #' @seealso For VIMP information about packages used that have the metric build-in: \code{\link[randomForest]{importance}},
 #'   \code{\link[randomForestSRC]{rfsrc}}, and \code{\link[gbm]{summary.gbm}}.
 #'
@@ -208,14 +209,15 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 #'                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
 #'                             y = 'ecoType',
 #'                             grouping = ecoGroup[['domSpecies','transform']])
-#' npelVIMP (modelRun$rfsrc,calc=F)
-#' npelVIMP (modelRun$rfsrc,calc=T)
+#' npelVIMP (modelRun$rfsrc,calc=FALSE)
+#' npelVIMP (modelRun$rfsrc,calc=TRUE)
 #' @export
-npelVIMP <- function (model, calc=F, echo=T) {
+npelVIMP <- function (model, calc=FALSE, echo=TRUE){
   # If we don't need to calculate, check if this is a model that contains VIMP and return it, otherwise continue...
   if (!calc) {
     tmp <- getVIMP(model)
     if (!is.null(tmp)) return(tmp)
+    else warning("npelVIMP: attempted to retrieve VIMP but came back empty; calculating.")
   }
 
   # Initialization
@@ -236,7 +238,7 @@ npelVIMP <- function (model, calc=F, echo=T) {
   for (i in x) {
     if (echo) print (paste0('Removing: ',i))
     tmp.x <- x[i!=x]
-    tmp.model <- generateModels(df, class(model)[[1]], x=tmp.x, y=y, nn.args=attr(model,'nn.args'), echo=F)[[1]] # Convert from list of length 1 to object
+    tmp.model <- generateModels(df, class(model)[[1]], x=tmp.x, y=y, nn.args=attr(model,'nn.args'), echo=FALSE)[[1]] # Convert from list of length 1 to object
     cA <- classAcc(getFitted(tmp.model), df[,y])
     if (!is.null(cA$prodAcc)) VIMP <- rbind(VIMP,cA$prodAcc)
     overall <- c(overall,cA$overallAcc)
@@ -244,7 +246,7 @@ npelVIMP <- function (model, calc=F, echo=T) {
   # Convert output accuracies to a VIMP metric
   VIMP <- cbind(decreaseAcc=overall,VIMP)
   VIMP <- -sweep(VIMP,2,as.numeric(VIMP[1,]))
-  VIMP <- VIMP[-1,,drop=F]
+  VIMP <- VIMP[-1,,drop=FALSE]
   row.names(VIMP) <- x
   return(VIMP)
 }
@@ -337,10 +339,12 @@ npelVIF <- function (fx, data) {
 #'
 #' @param pred the predicted classes.
 #' @param valid the validation classes.
-#' @param digits (optional) the number of digits to output for the error; defaults to 3.
+#' @param weights (optional) sampling weights for each point; if provided, the confusion matrix will be the sum of sample weights in each
+#'   bin rather than the sum of the points---the latter case really signifying where weights are all one.
 #' @param classNames (optional) a character vector of class names (strings). It is necessary because in grouped models, there are no
 #'   meaningful classnames stored internal to the model. classNames will be subsetted to include only the levels that are actually present
 #'   in the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.
+#' @param ... any extra parameters; not currently used.
 #' @return Note: this function returns different data depending on the whether the model is categorical or continuous:
 #' \itemize{
 #'   \item \code{categorical} a five element named list: \code{confMatrix} = confusion matrix, \code{userAcc} = user accuracies,
@@ -371,18 +375,19 @@ npelVIF <- function (fx, data) {
 #' mAcc <- classAcc (getFitted(model),getData(model)[['easting']])
 #' str (mAcc,1)
 #' @export
-classAcc <- function (pred, valid, digits=3, classNames=NULL) {
-  if (isCat(pred)) { classAcc.Cat (pred, valid, digits, classNames) }
-  else if (isCont(pred)) { classAcc.Cont (pred, valid, digits, classNames) }
+classAcc <- function (pred, valid, weights=NULL, classNames=NULL, ...) {
+  if (isCat(pred)) { classAcc.Cat(pred, valid, weights, classNames) }
+  else if (isCont(pred)) { classAcc.Cont(pred, valid) }
   else stop("classAcc: predictor satisfied neither categorical or continuous criteria; check data.")
 }
-classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
+classAcc.Cat <- function (pred, valid, weights, classNames) {
   pred <- trimLevels(pred);          valid <- trimLevels(valid)
   pred <- mergeLevels(pred,valid);   valid <- mergeLevels(valid,pred)
   if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
   if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
 
-  conf <- xtabs(formula='~pred+valid',data=data.frame(pred,valid))
+  if (is.null(weights)) weights <- rep(1,length(pred))
+  conf <- xtabs(weights~pred+valid, data.frame(pred,valid,weights))
   userTot <- apply (conf,1,sum)
   prodTot <- apply (conf,2,sum)
   Tot <- sum(conf)
@@ -399,7 +404,7 @@ classAcc.Cat <- function (pred, valid, digits=3, classNames=NULL) {
   names (classLevelAcc) <- classNames
   return (list(confMatrix=conf, userAcc=userAcc, prodAcc=prodAcc, classLevelAcc=classLevelAcc, overallAcc=overallAcc, kappa=kappa))
 }
-classAcc.Cont <- function (pred, valid, digits, classNames) {
+classAcc.Cont <- function (pred, valid) {
   SS.res <- sum( (pred-valid)^2 )
   SS.tot <- sum((valid-mean(valid))^2)
   rsq <- 1-SS.res/SS.tot
@@ -449,12 +454,12 @@ classAcc.Cont <- function (pred, valid, digits, classNames) {
 #' validate(modelRun[[2]],valid)
 #' modelsValid(modelRun,valid)
 #' @export
-validate <- function(model, valid,...){
+validate <- function(model, valid, ...){
   x <- y <- NULL
   fx2vars (getFormula(model),x,y,names=names(valid))
   res <- buildPredict(model)(model, valid[,x])                # rFSRC is cranky about types and levels in y variables so just don't supply it as it isn't necessary
   if (isCat(model)) res <- suppressWarnings(prob2class(res))  # prob2class throws an warning if there is only one column; this should only occur if model is FNN
-  classAcc(res,valid[,y],...)
+  classAcc(res, valid[,y], ...)
 }
 
 ##### modelAccs #####
@@ -481,9 +486,7 @@ validate <- function(model, valid,...){
 #'   See the details section of \code{\link{npelVIMP}} for a discussion of the limitations of our VIMP metric.
 #'
 #' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate.
-#' @param classNames (optional) class names to attach to the tables; only used if the data is categorical.
-#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false.
-#' @param echo (optional) should the function print out it's progress, defaults to false.
+#' @param ... (optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.
 #'
 #' @return This function returns different values depending on whether the model is categorical or continuous. For categorical data it
 #'   returns a named list of accuracy and VIMP statistics:
@@ -525,10 +528,10 @@ validate <- function(model, valid,...){
 #' mE <- modelAccs (modelRun)
 #' str(mE,1)
 #' @export
-modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
-  if (!'list' %in% class(models)[[1]]) models <- list (models)                # In case it is only a single model, wrap it in a list
-  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=NULL, func=classAcc, VIMP=TRUE, calc=calc, classNames=classNames, echo=echo) }
-  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=NULL, func=classAcc, VIMP=TRUE, calc=calc, echo=echo) }
+modelAccs <- function (models, ...) {
+  if (!'list' %in% class(models)[[1]]) models <- list (models)       # In case it is only a single model, wrap it in a list
+  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=NULL, func=classAcc, VIMP=TRUE, ...) }
+  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=NULL, func=classAcc, VIMP=TRUE, ...) }
   else stop("modelAccs: model satisfied neither categorical or continuous criteria.")
 }
 
@@ -540,9 +543,7 @@ modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
 #'
 #' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate.
 #' @param valid a validation dataset with which to test the accuracy of the models provided.
-#' @param classNames (optional) class names to attach to the tables; only used if the data is categorical.
-#' @param calc (optional) passed on to \code{\link{npelVIMP}}, defaults to false
-#' @param echo (optional) should the function print out it's progress, defaults to false
+#' @param ... (optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.
 #'
 #' @return As with \code{\link{modelAccs}}, this function returns different values depending on whether the model is categorical or
 #'   continuous. For categorical data it returns a named list of accuracy statistics:
@@ -587,21 +588,21 @@ modelAccs <- function (models, classNames=NULL, calc=F, echo=T) {
 #' mV <- modelsValid(modelRun,valid)
 #' str(mV,2)
 #' @export
-modelsValid <- function(models, valid, classNames=NULL, calc=F, echo=T){
-  if (!'list' %in% class(models)[[1]]) models <- list (models)                # In case it is only a single model, wrap it in a list
-  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=valid, validate, VIMP=FALSE, calc=FALSE, classNames=classNames, echo=echo) }
-  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=valid, func=validate, VIMP=FALSE, calc=FALSE, echo=echo) }
+modelsValid <- function(models, valid, ...) {
+  if (!'list' %in% class(models)[[1]]) models <- list (models)             # In case it is only a single model, wrap it in a list
+  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=valid, validate, VIMP=FALSE, ...) }
+  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=valid, func=validate, VIMP=FALSE, ...) }
   else stop("validModels: model satisfied neither categorical or continuous criteria.")
 }
 
 ##### nnErrMap #####
-#' Generate a map of the distance--or error--from a pixel to it's nearest neighbouror.
+#' Generate a map of the distance --- or error --- from a pixel to it's nearest neighbour.
 #'
 #' @details
 #' One way to estimate the accuracy/confidence of a nearest neighbour map, is to compute the distance from a pixel to it's nearest
 #' neighbour. It is important to understand that this 'distance' is not the spatial distance, i.e. the distance along the earths surface,
 #' but rather the distance in the space in which this was the nearest neighbour, that is, the distance in the statistical space used. For
-#' example, this might be the so-called \sQuote{Tasseled Cap} variables.
+#' example, this might be the so-called \sQuote{Tasselled Cap} variables.
 #'
 #' Since it is possible to measure distance through parameter space in non-Euclidean ways, the \code{kernal} parameter is provided. If this
 #' argument is specified it should be a function in the form \code{f(a,b)} in which \code{a} and b are the vectors of data for this pixel
@@ -671,7 +672,7 @@ nnErrMap <- function(model, idLayer, rData, outFilename, kernel=NULL, weight=NUL
   nl <- raster::nlayers(rData)
 
   func <- function(x){ as.matrix(genData[x,-1]) }
-  nnData <- raster::calc(idLayer, func, forceapply=T)
+  nnData <- raster::calc(idLayer, func, forceapply=TRUE)
   rData <- stack(rData, nnData)
 
   if (is.null(kernel)) { kernel <- function(a,b){ sqrt(sum((a-b)^2)) } }
@@ -690,26 +691,32 @@ nnErrMap <- function(model, idLayer, rData, outFilename, kernel=NULL, weight=NUL
 #'
 #' @param models the model group to process.
 #' @param valid validation data if relevant, i.e. if func = 'validate'.
-#' @param func the function to use to evaluate accuracy: classAcc or validate.
-#' @param VIMP should we add the VIMP data.
-#' @param calc should we compute the VIMP metric from scratch, only referenced if VIMP = TRUE.
-#' @param classNames the classnames.
+#' @param func the function to use to evaluate accuracy: \code{classAcc} or \code{validate}.
+#' @param VIMP should we append the VIMP data.
 #' @param echo should the function print out processing messages as it runs.
+#' @param ... (optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.
 #'
 #' @return a the class that \code{\link{modelAccs}} or \code{\link{modelValid}} needs.
 #' @export
-wrapAccs.Cat  <- function(models, valid, func, VIMP, calc, classNames, echo) {
+wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
+  args <- list(...)
+  args[['echo']] <- echo
+  if (is.null(args[['calc']])) args[['calc']] <- FALSE
+
   y <- NULL
   fx2vars(getFormula(models[[1]]),y=y)
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(getData(models[[1]])[,y])))) { warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+  if (!is.null(args[['classNames']]) && length (args[['classNames']]) != max(as.numeric(levels(getData(models[[1]])[,y])))) {
+    warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values");
+    args[['classNames']] <- NULL
+  }
 
   userAcc <- prodAcc <- VIMPoverall <- confMatrix <- kappa <- outVIMP <- colNames <- NULL
   for (i in models) {
-    if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
+    if (args[['echo']]) print (paste0('Computing accuracy: ',class(i)[[1]]))
     colNames <- c(colNames, class(i)[[1]])
 
-    if (substitute(func) == 'classAcc') { tmp <- classAcc(getFitted(i), getData(i)[,y], classNames=classNames) }
-    if (substitute(func) == 'validate') { tmp <- validate(i, valid) }
+    if (substitute(func) == 'classAcc') { tmp <- do.call(classAcc, c(list(pred=getFitted(i), valid=getData(i)[,y]), args)) }
+    if (substitute(func) == 'validate') { tmp <- do.call(validate, c(list(model=i, valid=valid), args)) }
 
     confMatrix <- c(confMatrix, list(tmp$confMatrix))
     user <- c(tmp$userAcc,tmp$overallAcc);    user <- data.frame(class=as.numeric(names(user)),user)
@@ -718,18 +725,18 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, calc, classNames, echo) {
       userAcc <- user
       prodAcc <- prod
     } else {
-      userAcc <- merge(userAcc, user, by='class', all=T)  # Cannot just cbind as they might not have the same number of classes...
-      prodAcc <- merge(prodAcc, prod, by='class', all=T)
+      userAcc <- merge(userAcc, user, by='class', all=TRUE)  # Cannot just cbind as they might not have the same number of classes...
+      prodAcc <- merge(prodAcc, prod, by='class', all=TRUE)
       userAcc['Row.names'] <- prodAcc['Row.names'] <- NULL
       names(userAcc) <- names(prodAcc) <- c('class',colNames)
     }
     kappa <- c(kappa,tmp$kappa)
 
     if (VIMP) {
-      tmp <- npelVIMP (i,calc=calc,echo=echo)
-      cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !calc) 1 else 0 ))
+      tmp <- do.call(npelVIMP,c(list(model=i),args))
+      cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !args[['calc']]) 1 else 0 ))
 
-      classN <- classNames
+      classN <- args[['classNames']]
       if (!is.null(classN) && length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
       if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
       colnames(tmp)[cols] <- classN
@@ -753,20 +760,24 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, calc, classNames, echo) {
 }
 #' @rdname wrapAccs.Cat
 #' @export
-wrapAccs.Cont <- function(models, valid, func, VIMP, calc, echo) {
+wrapAccs.Cont <- function(models, valid, func, VIMP, echo=FALSE, ...) {
+  args <- list(...)
+  args[['echo']] <- echo
+  if (is.null(args[['calc']])) args <- c(args,calc=FALSE)
+
   x <- y <- NULL
   fx2vars(getFormula(models[[1]]),x=x,y=y)
   overallAcc <- VIMPoverall <- colNames <- NULL
   for (i in models) {
-    if (echo) print (paste0('Computing accuracy: ',class(i)[[1]]))
+    if (args[['echo']]) print (paste0('Computing accuracy: ',class(i)[[1]]))
     colNames <- c(colNames, class(i)[[1]])
 
-    if (substitute(func) == 'classAcc') { tmp <- classAcc(getFitted(i), getData(i)[,y]) }
-    if (substitute(func) == 'validate') { tmp <- validate(i, valid) }
+    if (substitute(func) == 'classAcc') { tmp <- do.call(classAcc, c(list(getFitted(i), getData(i)[,y]), args)) }
+    if (substitute(func) == 'validate') { tmp <- do.call(validate, c(list(i, valid), args)) }
     overallAcc <- rbind(overallAcc, data.frame(overallAcc=tmp$overallAcc, mse=tmp$mse))
 
     if (VIMP) {
-      tmp <- npelVIMP (i, calc=calc, echo=echo)
+      tmp <- do.call(npelVIMP, c(list(i), args))
       VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
     }
   }
@@ -776,8 +787,6 @@ wrapAccs.Cont <- function(models, valid, func, VIMP, calc, echo) {
     colnames(VIMPoverall) <- colNames
     rownames(VIMPoverall) <- x
     return (list(overallAcc=overallAcc, VIMPoverall=VIMPoverall))
-  } else {
-    return (list(overallAcc=overallAcc))
-  }
+  } else return (list(overallAcc=overallAcc))
 }
 

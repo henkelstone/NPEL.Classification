@@ -4,18 +4,14 @@
 \alias{modelsValid}
 \title{Generate validation statistics for a list of models; a wrapper for \code{validate}.}
 \usage{
-modelsValid(models, valid, classNames = NULL, calc = F, echo = T)
+modelsValid(models, valid, ...)
 }
 \arguments{
 \item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate.}
 
 \item{valid}{a validation dataset with which to test the accuracy of the models provided.}
 
-\item{classNames}{(optional) class names to attach to the tables; only used if the data is categorical.}
-
-\item{calc}{(optional) passed on to \code{\link{npelVIMP}}, defaults to false}
-
-\item{echo}{(optional) should the function print out it's progress, defaults to false}
+\item{...}{(optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.}
 }
 \value{
 As with \code{\link{modelAccs}}, this function returns different values depending on whether the model is categorical or

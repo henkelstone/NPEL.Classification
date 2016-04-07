@@ -5,7 +5,7 @@
 \title{Generate Models}
 \usage{
 generateModels(data, modelTypes, fx = NULL, x = NULL, y = NULL,
-  grouping = NULL, echo = T, rf.args = NULL, nn.args = NULL,
+  grouping = NULL, echo = TRUE, rf.args = NULL, nn.args = NULL,
   gbm.args = NULL)
 }
 \arguments{

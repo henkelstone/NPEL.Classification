@@ -5,24 +5,22 @@
 \alias{wrapAccs.Cont}
 \title{Thin wrappers to package up categorical/continuous accuracies/validation data for a group of models.}
 \usage{
-wrapAccs.Cat(models, valid, func, VIMP, calc, classNames, echo)
+wrapAccs.Cat(models, valid, func, VIMP, echo = FALSE, ...)
 
-wrapAccs.Cont(models, valid, func, VIMP, calc, echo)
+wrapAccs.Cont(models, valid, func, VIMP, echo = FALSE, ...)
 }
 \arguments{
 \item{models}{the model group to process.}
 
 \item{valid}{validation data if relevant, i.e. if func = 'validate'.}
 
-\item{func}{the function to use to evaluate accuracy: classAcc or validate.}
+\item{func}{the function to use to evaluate accuracy: \code{classAcc} or \code{validate}.}
 
-\item{VIMP}{should we add the VIMP data.}
-
-\item{calc}{should we compute the VIMP metric from scratch, only referenced if VIMP = TRUE.}
-
-\item{classNames}{the classnames.}
+\item{VIMP}{should we append the VIMP data.}
 
 \item{echo}{should the function print out processing messages as it runs.}
+
+\item{...}{(optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.}
 }
 \value{
 a the class that \code{\link{modelAccs}} or \code{\link{modelValid}} needs.

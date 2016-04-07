@@ -4,18 +4,21 @@
 \alias{classAcc}
 \title{Generates basic error statistics for a model}
 \usage{
-classAcc(pred, valid, digits = 3, classNames = NULL)
+classAcc(pred, valid, weights = NULL, classNames = NULL, ...)
 }
 \arguments{
 \item{pred}{the predicted classes.}
 
 \item{valid}{the validation classes.}
 
-\item{digits}{(optional) the number of digits to output for the error; defaults to 3.}
+\item{weights}{(optional) sampling weights for each point; if provided, the confusion matrix will be the sum of sample weights in each
+bin rather than the sum of the points---the latter case really signifying where weights are all one.}
 
 \item{classNames}{(optional) a character vector of class names (strings). It is necessary because in grouped models, there are no
 meaningful classnames stored internal to the model. classNames will be subsetted to include only the levels that are actually present
 in the model. See \code{\link{ecoGroup}} for more information on how to garner and store useful grouping labels.}
+
+\item{...}{any extra parameters; not currently used.}
 }
 \value{
 Note: this function returns different data depending on the whether the model is categorical or continuous:

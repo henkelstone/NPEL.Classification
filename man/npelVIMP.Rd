@@ -4,19 +4,20 @@
 \alias{npelVIMP}
 \title{Generate an estimate for variable importance for nearest neighbour models}
 \usage{
-npelVIMP(model, calc = F, echo = T)
+npelVIMP(model, calc = FALSE, echo = TRUE)
 }
 \arguments{
 \item{model}{the classifier to test}
 
 \item{calc}{(optional) should the function recalculate the VIMP; that is, if the model is one of the types that computes VIMP during
-generation, should we recalculate it, or use the pre-existing VIMP; currently: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
-and \pkg{\link[gbm]{gbm}}.}
+generation, should we recalculate it, or use the pre-existing VIMP; currently: \pkg{\link[randomForest]{randomForest}},
+\pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}, and \pkg{\link[gbm]{gbm}}.}
 
 \item{echo}{(optional) should the function inform the user about it's progress}
 }
 \value{
-returns a data frame with rows as the variables, and columns being the classes. The first column is the overall VIMP for that variable.
+returns a data frame with rows as the variables, and columns being the classes. The first column is the overall VIMP for that
+  variable.
 }
 \description{
 There is no well-established way of determining variable importance for nearest neighbour classifiers. In an effort to generate \emph{some} useful
@@ -79,8 +80,8 @@ modelRun <- generateModels (data = siteData,
                             x = c('brtns','grnns','wetns','dem','slp','asp','hsd'),
                             y = 'ecoType',
                             grouping = ecoGroup[['domSpecies','transform']])
-npelVIMP (modelRun$rfsrc,calc=F)
-npelVIMP (modelRun$rfsrc,calc=T)
+npelVIMP (modelRun$rfsrc,calc=FALSE)
+npelVIMP (modelRun$rfsrc,calc=TRUE)
 }
 \seealso{
 For VIMP information about packages used that have the metric build-in: \code{\link[randomForest]{importance}},

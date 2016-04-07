@@ -50,6 +50,7 @@ These tasks fall into six main groups with the following functions associated wi
     \item \code{\link{validate}} -- validate a specified model, that is, use a validation dataset to determine accuracy: class accuracies
       for categorical data, and R-squared for regression models.
     \item \code{\link{modelsValid}} -- validate a list of models.
+    \item \code{\link{nnErrMap}} -- produce a map of nearest neigbour distances or errors.
   }
 \item Render Output
   \itemize{
@@ -72,6 +73,7 @@ A small selection of data has been included in the package for didactic and test
   \item \code{\link{egTile}} -- a sample tile comprising an .rda file linked to a (small) collection of tifs
   \item \code{\link{siteData}} -- a (small) subset of site data
   \item \code{\link{ecoGroup}} -- an example transformation 'function' including labels and suggested colours
+  \item \code{\link{water}} -- an example of a water mask
 }
 }
 

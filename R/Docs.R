@@ -75,6 +75,7 @@ NULL
 #'     \item \code{\link{validate}} -- validate a specified model, that is, use a validation dataset to determine accuracy: class accuracies
 #'       for categorical data, and R-squared for regression models.
 #'     \item \code{\link{modelsValid}} -- validate a list of models.
+#'     \item \code{\link{nnErrMap}} -- produce a map of nearest neigbour distances or errors.
 #'   }
 #' \item Render Output
 #'   \itemize{
@@ -95,6 +96,7 @@ NULL
 #'   \item \code{\link{egTile}} -- a sample tile comprising an .rda file linked to a (small) collection of tifs
 #'   \item \code{\link{siteData}} -- a (small) subset of site data
 #'   \item \code{\link{ecoGroup}} -- an example transformation 'function' including labels and suggested colours
+#'   \item \code{\link{water}} -- an example of a water mask
 #' }
 #'
 #' @section Utility functions and Constants:
@@ -423,7 +425,7 @@ NULL
 #' LandSAT <- stack (ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
 #' names (LandSAT) <- c('ndvi','ndwi','evi','mavi','nred','ngrn','grnns','brtns','wetns')
 #' rm (blue, green, red, NIR, SWIR1, SWIR2, ndvi, ndwi, evi, mavi, nred, ngrn, grnns, brtns, wetns)
-#' \dontrun{writeRaster (LandSAT,filename=paste0(gisPath,'LandSAT'), overwrite=T)}
+#' \dontrun{writeRaster (LandSAT,filename=paste0(gisPath,'LandSAT'), overwrite=TRUE)}
 #'
 #' # Generate DEM derived data using built in functions
 #' slope <-  terrain(egTile$dem, opt='slope', unit='degrees')
@@ -434,11 +436,11 @@ NULL
 #' TRI <-    terrain(egTile$dem, opt='TRI')
 #' rough <-  terrain(egTile$dem, opt='roughness')
 #' flow <-   terrain(egTile$dem, opt='flowdir')
-#' hsd <-    hillShade(deg2rad(slope), deg2rad(aspect), angle=53.3, direction=199.8, normalize=T)
+#' hsd <-    hillShade(deg2rad(slope), deg2rad(aspect), angle=53.3, direction=199.8, normalize=TRUE)
 #'
 #' # Generate DEM derived data manually to match ArcGIS output
 #'  RI <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3),
-#'              fun=function(x){sqrt( sum((x-x[5])^2,na.rm=T)/8 )}, pad=TRUE, padValue=NA)
+#'              fun=function(x){sqrt( sum((x-x[5])^2,na.rm=TRUE)/8 )}, pad=TRUE, padValue=NA)
 #' # SRR <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3),    # Cute but slow so do it the long way
 #' #              fun=function(x){ m <- min(x); (mean(x)-m)/(max(x)-m) }, pad=TRUE, padValue=NA)
 #' eMin <- focal(egTile$dem, w=matrix(1, nrow=3, ncol=3), fun=min, pad=TRUE, padValue=NA)
@@ -451,6 +453,26 @@ NULL
 #' DEM <- stack (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
 #' names (DEM) <- c('slp','asp','TPI','TRI','rough','srr','ri','flow','hsd')
 #' rm (slope, aspect, TPI, TRI, rough, SRR, RI, flow, hsd)
-#' \dontrun{writeRaster (DEM,filename=paste0(gisPath,'DEM'), overwrite=T)}
-#' detach('package:raster',unload=T)
+#' \dontrun{writeRaster (DEM,filename=paste0(gisPath,'DEM'), overwrite=TRUE)}
+#' detach('package:raster',unload=TRUE)
 "egTile"
+
+##### Water #####
+#' An example of a water mask
+#'
+#' Since it is unlikely to have field sites situated on water, most classification models are not well equipped to handle water areas.
+#' Typically this is handled by simply ignoring them when building the model. However, depending on the post-rendering analysis, it can be
+#' useful to mask them out. This \code{Raster.Layer} is a sample water mask for the sample dataset provided \code{\link{egTile}}. See the
+#' examples section for how to use this mask.
+#'
+#' @docType data
+#' @name water
+#' @usage water
+#' @format A Raster.Layer object with an example water mask: values of 1 indicate water, values of 128 indicate non-water.
+#' @seealso See \code{\link{writeTile}} and \code{\link{writeTiles}} for examples of rendering.
+#' @examples
+#' data(egTile)
+#' data(water)
+#' plot (egTile)
+#' plot (raster::mask(egTile,water,maskvalue=1,updatevalue=NA))
+"water"

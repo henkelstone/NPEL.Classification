@@ -16,11 +16,12 @@ plotTile.base <- function(data, layers=NULL, title="", maxpixels=500000, reducti
   if (!requireNamespace('ggplot2')) stop("ggplot2 package required for plotting")
   if (!is.null(layers)) data <- subset(data,layers)
 
-  # Theres a glitch in sampleRegular: we can't just simply ask for sR(data, number of cells, xy=T) as it doesn't return the same values for xy as if we
-  # do it step by step: x <- sR(data,#cells,xy=F,raster=T); xyFromCell(x,1:#cells). I don't know why this is, but it causes artifacts in the final plot
-  # so it is necessary to do the work around shown here... It just means we have to extract the data twice so it's a bit slower.
+  # Theres a glitch in sampleRegular: we can't just simply ask for sR(data, number of cells, xy=TRUE) as it doesn't return the same values
+  # for xy as if we do it step by step: x <- sR(data,#cells,xy=FALSE,raster=TRUE); xyFromCell(x,1:#cells). I don't know why this is, but it
+  # causes artifacts in the final plot so it is necessary to do the work around shown here... It just means we have to extract the data
+  # twice so it's a bit slower.
   colNames <- names(data)
-  data <- raster::sampleRegular(data, size=min(raster::ncell(data)/(reduction*reduction),maxpixels),asRaster=T)   # Return a raster so we can extract the coords afterwards.
+  data <- raster::sampleRegular(data, size=min(raster::ncell(data)/(reduction*reduction),maxpixels),asRaster=TRUE)   # Return a raster so we can extract the coords afterwards.
   data <- data.frame(raster::xyFromCell(data,1:raster::ncell(data)), raster::getValues(data))
   names(data) <- c('x','y',colNames)
   dat <- reshape(data=data,direction='long',idvar=1:2,varying=3:dim(data)[2],v.names='value',timevar='type',times=names(data)[3:dim(data)[2]]) # Massage into long form; over a GB for a full tile!
@@ -56,7 +57,7 @@ plotTile <- function(gp, layers, discrete, colours, labels=NULL,...){
     else                 return( gp + ggplot2::aes(fill='factor(value)') + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values=colours, labels=labels) )
   } else {
     if (length (colours) == 2) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient (low=colours[1], high=colours[2]) + ggplot2::facet_wrap('~type') )
-    if (length (colours) == 3) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient2(low=colours[1], mid=colours[2], high=colours[3], midpoint=(max(gp$data$value,na.rm=T)-min(gp$data$value,na.rm=T))/2) + ggplot2::facet_wrap('~type') )
+    if (length (colours) == 3) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient2(low=colours[1], mid=colours[2], high=colours[3], midpoint=(max(gp$data$value,na.rm=TRUE)-min(gp$data$value,na.rm=TRUE))/2) + ggplot2::facet_wrap('~type') )
   }
 }
 
@@ -75,11 +76,11 @@ plotTiles <- function(path, base, extension, models, type='pdf',...) {
     if (raster::nlayers(Tile) > 1) { names(Tile) <- c('Class', 'Prob', paste0('Prob.',1:(raster::nlayers(Tile)-2))) } else { names(Tile) <- c('Class') }
 
     if (type=='png') png(paste0(fName,'.png'),...)
-    else pdf(paste0(fName,'.pdf'),width=10.0,height=7.5,onefile=T)
+    else pdf(paste0(fName,'.pdf'),width=10.0,height=7.5,onefile=TRUE)
 
     gp <- plotTile.base(Tile, layers=names(Tile), maxpixels=1000000)
-    plotTile(gp, layers='Class', discrete=T, colours=NPEL.Classification::ecoGroup[['domSpecies','colours']]) #,aes(alpha='Prob'))
-    if (fType != 'fnn') plotTile(gp, layers=c('Prob',paste('Prob',1:7,sep='.')), discrete=F, colours=c('grey17','red','yellow'))
+    plotTile(gp, layers='Class', discrete=TRUE, colours=NPEL.Classification::ecoGroup[['domSpecies','colours']]) #,aes(alpha='Prob'))
+    if (fType != 'fnn') plotTile(gp, layers=c('Prob',paste('Prob',1:7,sep='.')), discrete=FALSE, colours=c('grey17','red','yellow'))
     #    Sys.sleep(15)
     dev.off(dev.cur())
   }
