@@ -4,16 +4,12 @@
 \alias{modelAccs}
 \title{Generate accuracy statistics and variable importance for a list of models; a wrapper for \code{classAcc}.}
 \usage{
-modelAccs(models, classNames = NULL, calc = F, echo = T)
+modelAccs(models, ...)
 }
 \arguments{
 \item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate.}
 
-\item{classNames}{(optional) class names to attach to the tables; only used if the data is categorical.}
-
-\item{calc}{(optional) passed on to \code{\link{npelVIMP}}, defaults to false.}
-
-\item{echo}{(optional) should the function print out it's progress, defaults to false.}
+\item{...}{(optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.}
 }
 \value{
 This function returns different values depending on whether the model is categorical or continuous. For categorical data it

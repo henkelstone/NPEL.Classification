@@ -5,7 +5,7 @@
 \title{Write multiple output tiles}
 \usage{
 writeTiles(models, inRdata, base, path = "./", extension = ".tif",
-  echo = T, ...)
+  echo = TRUE, ...)
 }
 \arguments{
 \item{models}{a list of model names, the standard output from \code{\link{generateModels}}}

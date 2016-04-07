@@ -4,7 +4,7 @@
 \alias{extractPoints}
 \title{Extracts the raster data corresponding to each point in the vector dataset.}
 \usage{
-extractPoints(rData, vData, locs, na.omit = T)
+extractPoints(rData, vData, locs, na.omit = TRUE)
 }
 \arguments{
 \item{rData}{the raster data as a raster.* object; can be read in using \code{\link{readTile}}}
@@ -26,7 +26,7 @@ sp::SpatialPoints. It is used to build combined remote-sensed and field data tha
 library (maptools)
 vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
-detach ('package:maptools',unload=T)
+detach ('package:maptools',unload=TRUE)
 }
 \seealso{
 \code{\link{readTile}} for reading in a collection of geoTiff's, \code{\link{egTile}} for more information on the raster format

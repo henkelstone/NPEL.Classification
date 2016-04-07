@@ -35,7 +35,7 @@ isCat.default <- function(x){
   if (class(x) %in% c('array','matrix','data.frame')) {
     if (length(dim(x)) > 1) {
       warning ("isCat: expects only a single column; running test on the first column")
-      x <- x[,1,drop=T]
+      x <- x[,1,drop=TRUE]
     }
     return( isCat(as.vector(as.matrix(x))) ) # Strip off data.frame, array, or matrix type
   }
@@ -75,7 +75,7 @@ isCont.default <- function(x){
   if (class(x) %in% c('array','matrix','data.frame')) {
     if (length(dim(x)) > 1) {
       warning ("isCont: expects only a single column; running test on the first column")
-      x <- x[,1,drop=T]
+      x <- x[,1,drop=TRUE]
     }
     return (isCont(as.vector(as.matrix(x))) ) # Strip off data.frame, array, or matrix type
   }
@@ -381,7 +381,7 @@ getFitted.fnn.class <- function(model) { model$fnn }
 getFitted.kknn <- function(model) { model$fitted.values[[ which(sapply(model$fitted.values,function(x){ attr(x,'kernel') == model$best.parameters$kernel && attr(x,'k') == model$best.parameters$k })) ]] }
 #' @export
 getFitted.gbm <- function(model) {
-  pred <- predict(model, getData(model), (function(){ capture.output(suppressWarnings(tmp<-gbm::gbm.perf(model,plot.it=F))); tmp })() )
+  pred <- predict(model, getData(model), (function(){ capture.output(suppressWarnings(tmp<-gbm::gbm.perf(model,plot.it=FALSE))); tmp })() )
   if (isCat(model)) return( factor(model$classes[apply(pred,1,which.max)]) )
   return(pred)
 }
@@ -406,33 +406,40 @@ getVIMP <- function(model) {
 }
 #' @export
 getVIMP.randomForest <- function(model) {
-  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=T, echo=F))
+  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=TRUE, echo=FALSE))
+  if (is.null(model$importance)) {
+    warning("getVIMP.randomForest: model does not have VIMP attached even though specified it does; generating")
+    return(npelVIMP (model, calc=TRUE, echo=FALSE))
+  }
   tmp <- as.data.frame(model$importance)
   cbind (MeanDecreaseAccuracy=tmp[,ncol(tmp)-1],tmp[,1:(ncol(tmp)-2)])
 }
 #' @export
 getVIMP.rfsrc <- function(model) {
-  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=T, echo=F))
+  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=TRUE, echo=FALSE))
+  if (is.null(model$importance)) {
+    warning("getVIMP.rfsrc: model does not have VIMP attached even though specified it does; generating")
+    return(npelVIMP (model, calc=TRUE, echo=FALSE))
+  }
   as.data.frame(model$importance)
 }
 #' @export
 getVIMP.fnn.FNN <- function(model) {
-  npelVIMP (model, calc=T, echo=F)
+  npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
 getVIMP.fnn.class <- function(model) {
-  npelVIMP (model, calc=T, echo=F)
+  npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
 getVIMP.kknn <- function(model) {
-  npelVIMP (model, calc=T, echo=F)
+  npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
 getVIMP.gbm <- function(model) {
   requireNamespace("gbm")
-  tmp <- npelVIMP (model, calc=T, echo=F)                                   # Be sure this is calc=T so we don't get an infinite loop!
-  if (is.null(tmp)) return ( summary(model,order=F,plotit=F)[,2,drop=F] )   # gbm has a special kind of VIMP: relative influence; append it
-  else cbind (tmp, summary(model,order=F,plotit=F)[,2,drop=F])
+  tmp <- npelVIMP (model, calc=TRUE, echo=FALSE)                      # GBM doesn't compute by class VIMP so do it here; be sure this is calc=TRUE so we don't get an infinite loop!
+  cbind (tmp, summary(model,order=FALSE,plotit=FALSE)[,2,drop=FALSE]) # But it has a special kind of VIMP: relative influence; append it
 }
 #' @export
 getVIMP.svm <- function(model) { warning('getVIMP: SVM not supported yet') }
@@ -478,36 +485,36 @@ buildModel <- function(type,data,fx,args=NULL) {
 #' @export
 .buildModel.randomForest <- function(data,fx,args=NULL) {
   if (is.null(args)) args$importance <- 'none'
-  model <- do.call(randomForest::randomForest, c(list(formula=quote(fx), data=quote(data), importance=(args$importance != 'none')), args[names(args) != 'importance']))
+  model <- do.call(randomForest::randomForest, c(list(formula=quote(fx), data=quote(data), importance=(args$importance!='none')), args[names(args)!='importance']))
   structure (.Data=model, data=data, args=args, class=rev(class(model)))
 }
 #' @export
 .buildModel.rfsrc <- function(data,fx,args=NULL) {
-  model <- do.call(randomForestSRC::rfsrc, c(list(formula=quote(fx), data=quote(data)), args=args))
+  model <- do.call(randomForestSRC::rfsrc, c(list(formula=quote(fx), data=quote(data)), args))
   structure (.Data=model, args=args)
 }
 #' @export
 .buildModel.fnn.FNN <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
-  model <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=args$k))
+  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  model <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=TRUE, k=args$k))
   structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.FNN')
 }
 #' @export
 .buildModel.fnn.class <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
-  model <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=T, k=args$k))
+  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  model <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=TRUE, k=args$k))
   structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.class')
 }
 #' @export
 .buildModel.kknn <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=F],scale(data[,x]))
-  model <- do.call(kknn::train.kknn, list(formula=quote(fx), data=quote(data), kmax=args$kmax, kernel=args$kernel))
+  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  model <- do.call(kknn::train.kknn, c(list(formula=quote(fx), data=quote(data)), args))
   structure (.Data=model, args=args[c('kmax','kernel','scale')], class=rev(class(model)))
 }
 #' @export
@@ -608,12 +615,12 @@ buildPredict.gbm <- function(model) {
   requireNamespace('gbm')
   if (isCat(model)) {
     return ( function (model,data,...) {
-      capture.output(suppressWarnings(n <- gbm::gbm.perf(model,plot.it=F)))
+      capture.output(suppressWarnings(n <- gbm::gbm.perf(model,plot.it=FALSE)))
       return( predict(model,data,n.trees=n,type='response',...)[,,1] )
     } )
   } else if (isCont(model)) {
     return ( function (model,data,...) {
-      capture.output(suppressWarnings(n <- gbm::gbm.perf(model,plot.it=F)))
+      capture.output(suppressWarnings(n <- gbm::gbm.perf(model,plot.it=FALSE)))
       return( predict(model,data,n.trees=n,type='response',...) )
     } )
   } else stop("buildPredict.gbm: model is neither categorical nor continuous")
@@ -623,7 +630,7 @@ buildPredict.svm <- function(model) {
 # SVM returns the probabilities as an attribute.
   requireNamespace('e1071')
   return ( function (model,data,...) {
-    return( attr(predict(model,data,probability=T,na.action=na.pass,...),'probabilities') )
+    return( attr(predict(model,data,probability=TRUE,na.action=na.pass,...),'probabilities') )
   } )
 }
 

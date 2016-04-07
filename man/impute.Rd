@@ -36,7 +36,7 @@ of the nearest neighbour to that pixel; it is possible to impute environmental d
 assigning that pixel the value (of the environmental variable) from that site. So if this pixel is nearest (in phase space) to site
 No.153, then we can infer (impute) that it is also most likely to have similar environmental characteristics. This is significantly
 better than generating a map of classes, then inferring values from the mean of the class as there is a huge amount of information lost
-in mapping \code{N} sites to \code{k} classes.
+in mapping \code{N} sites to \code{k} classes, especially where \eqn{N >> k}.
 
 This function is essentially similar to the SQL/database command JOIN; that is, it joins two groups of data using a common column, such
 that every time a value \code{y} occurs in the first table, some or all of the addition columns in the second table \code{x} are appended
@@ -60,11 +60,11 @@ output of the imputation map. Example code is given below.
 \section{Warning}{
 
 In an effort to streamline usage, this function will attempt to coerce non-numeric data into something that can be written using the
-\link{raster} package.
-To this end, if the data is found to be other than numeric, it is converted to numeric using the command
-\code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors. It
-\emph{should} be possible to recover the values of the indices using this same typecast, however, there is a risk that there could be
-some glitch or error, and a mismapping could result between factor indices and actual values.
+\pkg{\link{raster}} package. To this end, if the data is found to be other than numeric, it is converted to numeric using the command
+\code{as.numeric(factor(x))}, which, as has been observed before in this documentation returns the \emph{indices} of the factors (see
+warning section for \code{\link{factor}}. It \emph{should} be possible to recover the values of the indices using this same typecast,
+however, there is a risk that there could be some glitch or error, and a mis-mapping could result between factor indices and actual
+values.
 
 \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 }
