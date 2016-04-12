@@ -399,14 +399,15 @@ getFitted.svm <- function(model) { warning('getFitted: SVM not supported yet') }
 #'   and attaches the formula and data. Hence, if a model was built directly using these packages the result will not
 #'   run this function.
 #' @param model is the model for which to extract the VIMP
+#' @param calc should the VIMP be computed using \code{npelVIMP(calc=T)}
 #' @return a data frame with the VIMP data if it is present, otherwise NULL
 #' @export
-getVIMP <- function(model) {
+getVIMP <- function(model,calc) {
   UseMethod("getVIMP")
 }
 #' @export
-getVIMP.randomForest <- function(model) {
-  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=TRUE, echo=FALSE))
+getVIMP.randomForest <- function(model,calc) {
+  if (getArgs(model)$importance == 'none' || calc) return (npelVIMP (model, calc=TRUE, echo=FALSE))
   if (is.null(model$importance)) {
     warning("getVIMP.randomForest: model does not have VIMP attached even though specified it does; generating")
     return(npelVIMP (model, calc=TRUE, echo=FALSE))
@@ -415,8 +416,8 @@ getVIMP.randomForest <- function(model) {
   cbind (MeanDecreaseAccuracy=tmp[,ncol(tmp)-1],tmp[,1:(ncol(tmp)-2)])
 }
 #' @export
-getVIMP.rfsrc <- function(model) {
-  if (getArgs(model)$importance == 'none') return (npelVIMP (model, calc=TRUE, echo=FALSE))
+getVIMP.rfsrc <- function(model,calc) {
+  if (getArgs(model)$importance == 'none' || calc) return (npelVIMP (model, calc=TRUE, echo=FALSE))
   if (is.null(model$importance)) {
     warning("getVIMP.rfsrc: model does not have VIMP attached even though specified it does; generating")
     return(npelVIMP (model, calc=TRUE, echo=FALSE))
@@ -424,25 +425,30 @@ getVIMP.rfsrc <- function(model) {
   as.data.frame(model$importance)
 }
 #' @export
-getVIMP.fnn.FNN <- function(model) {
+getVIMP.fnn.FNN <- function(model,calc) {
+  if (!calc) warning("getVIMP.fnn.FNN: nearest neighbour has no built in VIMP; generating")
   npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
-getVIMP.fnn.class <- function(model) {
+getVIMP.fnn.class <- function(model,calc) {
+  if (!calc) warning("getVIMP.fnn.FNN: nearest neighbour has no built in VIMP; generating")
   npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
-getVIMP.kknn <- function(model) {
+getVIMP.kknn <- function(model,calc) {
+  if (!calc) warning("getVIMP.fnn.FNN: nearest neighbour has no built in VIMP; generating")
   npelVIMP (model, calc=TRUE, echo=FALSE)
 }
 #' @export
-getVIMP.gbm <- function(model) {
+getVIMP.gbm <- function(model,calc) {
   requireNamespace("gbm")
-  tmp <- npelVIMP (model, calc=TRUE, echo=FALSE)                      # GBM doesn't compute by class VIMP so do it here; be sure this is calc=TRUE so we don't get an infinite loop!
-  cbind (tmp, summary(model,order=FALSE,plotit=FALSE)[,2,drop=FALSE]) # But it has a special kind of VIMP: relative influence; append it
+  if (calc) tmp <- npelVIMP (model, calc=TRUE, echo=FALSE)              # Be sure this is calc=TRUE so we don't get an infinite loop!
+  builtIn <- summary(model, order=FALSE, plotit=FALSE)[,2,drop=FALSE]   # But it has a special kind of VIMP: relative influence; append it
+  if (calc) cbind(tmp,builtIn)
+  else builtIn
 }
 #' @export
-getVIMP.svm <- function(model) { warning('getVIMP: SVM not supported yet') }
+getVIMP.svm <- function(model,calc) { warning('getVIMP: SVM not supported yet') }
 
 
 ########## Higher level functions ##########
@@ -497,7 +503,11 @@ buildModel <- function(type,data,fx,args=NULL) {
 .buildModel.fnn.FNN <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  if (args$scale) {
+    sDev <- apply(data[,x],2,sd)
+    sDev[sDev == 0] <- 1
+    data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x],scale=sDev))
+  }
   model <- do.call(FNN::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=TRUE, k=args$k))
   structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.FNN')
 }
@@ -505,7 +515,11 @@ buildModel <- function(type,data,fx,args=NULL) {
 .buildModel.fnn.class <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  if (args$scale) {
+    sDev <- apply(data[,x],2,sd)
+    sDev[sDev == 0] <- 1
+    data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x],scale=sDev))
+  }
   model <- do.call(class::knn.cv, list(train=quote(data[,x]), cl=quote(data[,y]), prob=TRUE, k=args$k))
   structure (list(fnn=model, formula=fx, train=data[,x], classes=data[,y]), args=args[c('k','scale')], class='fnn.class')
 }
@@ -513,7 +527,11 @@ buildModel <- function(type,data,fx,args=NULL) {
 .buildModel.kknn <- function(data,fx,args=NULL) {
   x <- attr(terms(fx),'term.labels')
   y <- as.character(terms(fx)[[2]])
-  if (args$scale) data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x]))
+  if (args$scale) {
+    sDev <- apply(data[,x],2,sd)
+    sDev[sDev == 0] <- 1
+    data <- cbind (data[,match(y,names(data)),drop=FALSE],scale(data[,x],scale=sDev))
+  }
   model <- do.call(kknn::train.kknn, c(list(formula=quote(fx), data=quote(data)), args))
   structure (.Data=model, args=args[c('kmax','kernel','scale')], class=rev(class(model)))
 }

@@ -91,17 +91,42 @@ test_that("getArgs", {
     expect_equal(class(getArgs(testRun[[i]])),'list')
   }
 })
-test_that("getVIMP", {
-  for (i in testRun) {
+test_that("getVIMP(F)", {
+  for (i in testRun[c(1,2,6)]) {
     if (verbose) cat ('\nTesting VIMP for model: ',class(i)[[1]])
-    vimp <- getVIMP(i)
+    vimp <- getVIMP(i,F)
     expect_equal(class(vimp), 'data.frame')
-    expect_equal(dim(vimp), c(3,length(levels(y))+1+ifelse(class(i)[[1]]=='gbm',1,0)))
-    expect_equal(colnames(vimp)[-1], c(levels(y),if(class(i)[[1]]=='gbm') 'rel.inf'))
+    # expect_equal(dim(vimp), c(3,length(levels(y))+1+ifelse(class(i)[[1]]=='gbm',1,0)))
+    # expect_equal(colnames(vimp)[-1], c(levels(y),if(class(i)[[1]]=='gbm') 'rel.inf'))
+    if (class(i)[1] == 'gbm') {
+      expect_equal(dim(vimp), c(3,1))
+      expect_equal(colnames(vimp),'rel.inf')
+    } else {
+      expect_equal(dim(vimp), c(3,length(levels(y))+1))
+      expect_equal(colnames(vimp)[-1], levels(y))
+    }
     expect_equal(rownames(vimp), c('x1','x2','x3'))
   }
   tmp <- generateModels(data[,1:3],suppModels,nn.args=list(scale=F),echo=F)
-  expect_error(getVIMP(tmp[['fnn.FNN']]),'npelVIMP: not able to compute post hoc VIMP on models with only two variables.')
+  expect_error(getVIMP(tmp[['fnn.FNN']],T),'npelVIMP: not able to compute post hoc VIMP on models with only two variables.')
+})
+
+test_that("getVIMP(T)", {
+  for (i in testRun) {
+    if (verbose) cat ('\nTesting VIMP for model: ',class(i)[[1]])
+    vimp <- getVIMP(i,T)
+    expect_equal(class(vimp), 'data.frame')
+    if (class(i)[1] == 'gbm') {
+      expect_equal(dim(vimp), c(3,length(levels(y))+2))
+      expect_equal(colnames(vimp)[-1],c(levels(y),'rel.inf'))
+    } else {
+      expect_equal(dim(vimp), c(3,length(levels(y))+1))
+      expect_equal(colnames(vimp)[-1], levels(y))
+    }
+    expect_equal(rownames(vimp), c('x1','x2','x3'))
+  }
+  tmp <- generateModels(data[,1:3],suppModels,nn.args=list(scale=F),echo=F)
+  expect_error(getVIMP(tmp[['fnn.FNN']],T),'npelVIMP: not able to compute post hoc VIMP on models with only two variables.')
 })
 
 # Most of the model types cannot be compared by dropping the same data down the model:

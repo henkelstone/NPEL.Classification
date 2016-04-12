@@ -4,10 +4,12 @@
 \alias{getVIMP}
 \title{Extract the VIMP if it is present}
 \usage{
-getVIMP(model)
+getVIMP(model, calc)
 }
 \arguments{
 \item{model}{is the model for which to extract the VIMP}
+
+\item{calc}{should the VIMP be computed using \code{npelVIMP(calc=T)}}
 }
 \value{
 a data frame with the VIMP data if it is present, otherwise NULL

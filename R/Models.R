@@ -17,33 +17,28 @@
 #' \itemize{
 #'   \item Random Forest---currently: \pkg{\link[randomForest]{randomForest}}, and \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}.
 #'   \itemize{
-#'     \item \code{mtry} the two different implementation of random forests, while they specify that they compute the number of variables to use at
-#'       each node split the same way, actually arrive at different answers internally---that is, given the defaults, they do not generate the
-#'       same output. By specifying it here, using the same formula they specify as the default, it is possible ensure that they are doing the
-#'       same thing; defaults to \code{floor(sqrt(length(x)))}.
-#'     \item \code{importance} one of the benefits of random forests is that it is relatively easy to compute a variable importance metric (VIMP).
-#'       While only \pkg{randomForestSRC} currently allows multiple options for methods, these options can be specified here (including
-#'       \sQuote{\code{none}} and the arguments for \pkg{randomForest} will be generated automatically; defaults to \sQuote{\code{permute}}
-#'     \item \code{na.action} what to do when na values are encountered; defaults to \sQuote{\code{na.omit}}.
-#'     \item \code{proximity} should proximity information be computed; see packages for more help.
+#'     \item \code{mtry = floor(sqrt(length(x)))} the two different implementation of random forests, while they specify that they compute
+#'       the number of variables to use at each node split the same way, actually arrive at different answers internally---that is, given
+#'       the defaults, they do not generate the same output. By specifying it here, using the same formula they specify as the default, it
+#'       is possible ensure that they are doing the same thing.
+#'     \item \code{importance = \sQuote{permute}} one of the benefits of random forests is that it is relatively easy to compute a
+#'       variable importance metric (VIMP). While only \pkg{randomForestSRC} currently allows multiple options for methods, these options
+#'       can be specified here (including \sQuote{\code{none}} and the arguments for \pkg{randomForest} will be generated automatically.
+#'     \item \code{na.action = na.omit} what to do when na values are encountered.
+#'     \item \code{proximity = FALSE} should proximity information be computed; see packages for more help.
 #'   }
 #'   \item Nearest Neighbour---currently: \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, and \pkg{\link[kknn:train.kknn]{kknn}}.
 #'   \itemize{
-#'     \item \code{k} the number of neighbours considered (for FNN and class); defaults to 3.
-#'     \item \code{kmax} the kknn package optimized the number of neighbours considered---this specified the maximum number of neighbours for that
-#'       optimization; defaults to 7, the default provided in kknn.
-#'     \item \code{kernel} the kknn package allows the selection of different kernel functions as to how to weight the distance metric---this
-#'      specifies which to use; defaults to \sQuote{\code{rectangular}}. It is possible to use more than one and it will optimize over
-#'      them all.
-#'     \item \code{scale} should we scale the data before running the model fit; defaults to TRUE.
+#'     \item \code{k = 2} the number of neighbours considered (for FNN and class).
+#'     \item \code{kernel = \sQuote{rectangular}} the kknn package allows the selection of different kernel functions as to how to weight
+#'       the distance metric---this specifies which to use. It is possible to use more than one and it will optimize over them all.
+#'     \item \code{scale = TRUE} should we scale the data before running the model fit.
 #'   }
 #'   \item GBM---currently: \pkg{\link[gbm]{gbm}}
 #'   \itemize{
-#'     \item \code{distribution} which distribution to assume for the data. Classification data defaults to \sQuote{\code{in the package}} and this
-#'       package follows that.
-#'     \item \code{n.trees} the maximum number of trees to grow. Note that this is \emph{not} the optimal number of trees! This is an overfit model; use
-#'       \code{\link[gbm]{gbm.perf}} to find the optimal model; defaults to 1000.
-#'     \item \code{keep.data} should the data be embedded in the model. Since other methods in this package need the data, default is TRUE; this also
+#'     \item \code{n.trees = 1000} the maximum number of trees to grow. Note that this is \emph{not} the optimal number of trees! This is an
+#'       overfit model; use \code{\link[gbm]{gbm.perf}} to find the optimal model.
+#'     \item \code{keep.data = TRUE} should the data be embedded in the model. Since other methods in this package need the data. This also
 #'       prevents the data from potentially being stored twice.
 #'   }
 #   \item SVM---currently: \pkg{\link[=svm]{e1071}}
@@ -100,7 +95,8 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
   if (isCat(data[,y])) {
     data[,y] <- trimLevels(as.factor(data[,y]))
   } else if (!isCont(data[,y])) stop("generateModels: specified y satisfied neither isCat nor isCont; check data class.")
-  x <- x[0 == apply (data[,x],2,FUN=function (x) {sum(is.na(x))})]         # Eliminate columns with NA values
+  # x <- x[0 == apply (data[,x],2,FUN=function (x){ sum(is.na(x)) })]         # Remove columns with NA values
+  data <- data[0 == apply (data[,x],1,FUN=function (x){ sum(is.na(x)) }),]    # Remove rows with NA values ???
 
   # Generate argument lists for each function type, i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -109,7 +105,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
     c(passed,default)
   }
   rf.args <-  replaceArgs (rf.args,  list(mtry=floor(sqrt(length(x))), importance='permute', na.action='na.omit', proximity=FALSE))
-  nn.args  <- replaceArgs (nn.args,  list(k=3, kmax=7, kernel='rectangular', scale=TRUE))
+  nn.args  <- replaceArgs (nn.args,  list(k=2, kmax=7, kernel='rectangular', scale=TRUE))
   gbm.args <- replaceArgs (gbm.args, list(n.trees=1000, keep.data=TRUE))
 #  svm.args <- replaceArgs (svm.args, list(scale=FALSE, probability=TRUE))
 
@@ -215,7 +211,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
 npelVIMP <- function (model, calc=FALSE, echo=TRUE){
   # If we don't need to calculate, check if this is a model that contains VIMP and return it, otherwise continue...
   if (!calc) {
-    tmp <- getVIMP(model)
+    tmp <- getVIMP(model,calc)
     if (!is.null(tmp)) return(tmp)
     else warning("npelVIMP: attempted to retrieve VIMP but came back empty; calculating.")
   }
@@ -705,7 +701,7 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
 
   y <- NULL
   fx2vars(getFormula(models[[1]]),y=y)
-  if (!is.null(args[['classNames']]) && length (args[['classNames']]) != max(as.numeric(levels(getData(models[[1]])[,y])))) {
+  if (!is.null(args[['classNames']]) && (length(args[['classNames']]) != max(as.numeric(levels(getData(models[[1]])[,y]))))) {
     warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values");
     args[['classNames']] <- NULL
   }
@@ -719,8 +715,8 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
     if (substitute(func) == 'validate') { tmp <- do.call(validate, c(list(model=i, valid=valid), args)) }
 
     confMatrix <- c(confMatrix, list(tmp$confMatrix))
-    user <- c(tmp$userAcc,tmp$overallAcc);    user <- data.frame(class=as.numeric(names(user)),user)
-    prod <- c(tmp$prodAcc,tmp$overallAcc);    prod <- cbind (class=as.numeric(names(prod)),prod)
+    user <- c(tmp$userAcc, tmp$overallAcc);    user <- data.frame(class=names(user), user)
+    prod <- c(tmp$prodAcc, tmp$overallAcc);    prod <- data.frame(class=names(prod), prod)
     if (is.null(userAcc)) {
       userAcc <- user
       prodAcc <- prod
@@ -733,15 +729,17 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
     kappa <- c(kappa,tmp$kappa)
 
     if (VIMP) {
-      tmp <- do.call(npelVIMP,c(list(model=i),args))
+      tmp <- do.call(npelVIMP,c(list(model=i),args[!names(args) %in% 'classNames']))
       cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !args[['calc']]) 1 else 0 ))
 
       classN <- args[['classNames']]
       if (!is.null(classN) && length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
       if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
-      colnames(tmp)[cols] <- classN
-
-      outVIMP <- c(outVIMP, list(tmp[,2:ncol(tmp)]))
+      if (colnames(tmp)[1] != 'rel.inf') {
+        colnames(tmp)[cols] <- classN       # gbm is an unusal case in that it doesn't compute class level VIMP by default
+        outVIMP <- c(outVIMP, list(tmp[,2:ncol(tmp)]))
+        names(outVIMP)[length(outVIMP)] <- colNames[length(colNames)]
+      }
       VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
     }
   }
@@ -752,7 +750,8 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
   names(userAcc) <- names(prodAcc) <- names(confMatrix) <- names(kappa) <- colNames
 
   if (VIMP) {
-    names(outVIMP) <- names(VIMPoverall) <- colNames
+    # names(outVIMP) <-
+      names(VIMPoverall) <- colNames
     return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=outVIMP, VIMPoverall=VIMPoverall))
   } else {
     return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa))

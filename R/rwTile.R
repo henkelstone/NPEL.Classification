@@ -17,14 +17,12 @@
 #'
 #' @seealso See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
 #' @examples
-#' \dontrun{
 #' # Read egTile from the provided geoTiff's; gisPath must point to package installation folder.
-#' path <- system.file("extdata", "egTile", package = "testdat")
-#' rData <- readTile(gisPath, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+#' path <- file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),'')
+#' rData <- readTile(path, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #'
 #' # Set the aspect layer to NA wherever slope is 0
 #' rData$asp <- calc (rData$asp,fun=function(x){ x[x == -1] <- NA; x })
-#' }
 #' @export
 readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
   retList <- list ()
@@ -52,8 +50,7 @@ readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
 #'   also \code{\link[maptools]{readShapePoints}} for more on reading-in vector data from a shapefile.
 #'
 #' @examples
-#' library (maptools)
-#' vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+#' vData <- maptools::readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 #' siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
 #' detach ('package:maptools',unload=TRUE)
 #' @export

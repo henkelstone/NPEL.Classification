@@ -52,33 +52,28 @@ be provided. The argument lists are divided up by model \emph{type}, not package
 \itemize{
   \item Random Forest---currently: \pkg{\link[randomForest]{randomForest}}, and \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}.
   \itemize{
-    \item \code{mtry} the two different implementation of random forests, while they specify that they compute the number of variables to use at
-      each node split the same way, actually arrive at different answers internally---that is, given the defaults, they do not generate the
-      same output. By specifying it here, using the same formula they specify as the default, it is possible ensure that they are doing the
-      same thing; defaults to \code{floor(sqrt(length(x)))}.
-    \item \code{importance} one of the benefits of random forests is that it is relatively easy to compute a variable importance metric (VIMP).
-      While only \pkg{randomForestSRC} currently allows multiple options for methods, these options can be specified here (including
-      \sQuote{\code{none}} and the arguments for \pkg{randomForest} will be generated automatically; defaults to \sQuote{\code{permute}}
-    \item \code{na.action} what to do when na values are encountered; defaults to \sQuote{\code{na.omit}}.
-    \item \code{proximity} should proximity information be computed; see packages for more help.
+    \item \code{mtry = floor(sqrt(length(x)))} the two different implementation of random forests, while they specify that they compute
+      the number of variables to use at each node split the same way, actually arrive at different answers internally---that is, given
+      the defaults, they do not generate the same output. By specifying it here, using the same formula they specify as the default, it
+      is possible ensure that they are doing the same thing.
+    \item \code{importance = \sQuote{permute}} one of the benefits of random forests is that it is relatively easy to compute a
+      variable importance metric (VIMP). While only \pkg{randomForestSRC} currently allows multiple options for methods, these options
+      can be specified here (including \sQuote{\code{none}} and the arguments for \pkg{randomForest} will be generated automatically.
+    \item \code{na.action = na.omit} what to do when na values are encountered.
+    \item \code{proximity = FALSE} should proximity information be computed; see packages for more help.
   }
   \item Nearest Neighbour---currently: \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, and \pkg{\link[kknn:train.kknn]{kknn}}.
   \itemize{
-    \item \code{k} the number of neighbours considered (for FNN and class); defaults to 3.
-    \item \code{kmax} the kknn package optimized the number of neighbours considered---this specified the maximum number of neighbours for that
-      optimization; defaults to 7, the default provided in kknn.
-    \item \code{kernel} the kknn package allows the selection of different kernel functions as to how to weight the distance metric---this
-     specifies which to use; defaults to \sQuote{\code{rectangular}}. It is possible to use more than one and it will optimize over
-     them all.
-    \item \code{scale} should we scale the data before running the model fit; defaults to TRUE.
+    \item \code{k = 2} the number of neighbours considered (for FNN and class).
+    \item \code{kernel = \sQuote{rectangular}} the kknn package allows the selection of different kernel functions as to how to weight
+      the distance metric---this specifies which to use. It is possible to use more than one and it will optimize over them all.
+    \item \code{scale = TRUE} should we scale the data before running the model fit.
   }
   \item GBM---currently: \pkg{\link[gbm]{gbm}}
   \itemize{
-    \item \code{distribution} which distribution to assume for the data. Classification data defaults to \sQuote{\code{in the package}} and this
-      package follows that.
-    \item \code{n.trees} the maximum number of trees to grow. Note that this is \emph{not} the optimal number of trees! This is an overfit model; use
-      \code{\link[gbm]{gbm.perf}} to find the optimal model; defaults to 1000.
-    \item \code{keep.data} should the data be embedded in the model. Since other methods in this package need the data, default is TRUE; this also
+    \item \code{n.trees = 1000} the maximum number of trees to grow. Note that this is \emph{not} the optimal number of trees! This is an
+      overfit model; use \code{\link[gbm]{gbm.perf}} to find the optimal model.
+    \item \code{keep.data = TRUE} should the data be embedded in the model. Since other methods in this package need the data. This also
       prevents the data from potentially being stored twice.
   }
 }
