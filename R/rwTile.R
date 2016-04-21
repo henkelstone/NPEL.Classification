@@ -19,10 +19,10 @@
 #' @examples
 #' # Read egTile from the provided geoTiff's; gisPath must point to package installation folder.
 #' path <- file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),'')
-#' rData <- readTile(path, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+#' egTile <- readTile(path, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #'
 #' # Set the aspect layer to NA wherever slope is 0
-#' rData$asp <- calc (rData$asp,fun=function(x){ x[x == -1] <- NA; x })
+#' egTile$asp <- calc (egTile$asp,fun=function(x){ x[x == -1] <- NA; x })
 #' @export
 readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
   retList <- list ()
@@ -50,6 +50,8 @@ readTile <- function (rasterPath, layers, labels=NULL, NAval=NULL) {
 #'   also \code{\link[maptools]{readShapePoints}} for more on reading-in vector data from a shapefile.
 #'
 #' @examples
+#' egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+#'                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #' vData <- maptools::readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 #' siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
 #' detach ('package:maptools',unload=TRUE)
@@ -129,6 +131,8 @@ vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SH
 #'
 #' @seealso \code{\link{writeTiles}} for an automated way to render all models in a model block
 #' @examples
+#' egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+#'                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #' models <- generateModels (siteData, suppModels, x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='ecoType')
 #' fName <- paste0(dirname(tempfile()),'/Tmp_rfsrc.tif')
 #' writeTile (models$rfsrc, egTile, fName, layers='class')
@@ -136,8 +140,10 @@ vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SH
 #' unlink (fName)
 #'
 #' \dontrun{
-#' # Example of real code with the option of cropping to a specific area
+#' # Example with the option of cropping to a specific area
 #' data ('Output/siteData.dat')
+#' egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+#'                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #'
 #' # Choose a model with specified groupings to load
 #' type <- c('Full','Reduced')[2]                          # Select either full or reduced grouping
@@ -147,7 +153,7 @@ vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SH
 #' load (paste0('Output/',type,' Models/MaxGranularity.dat'))
 #' rm (type)
 #'
-#' inRdata <- rData
+#' inRdata <- egTile
 #' # Choose a block and crop if desired
 #' IB_1 <- maptools::readShapePoly('Input/Intensive Blocks/IB_1')
 #' IB_2 <- maptools::readShapePoly('Input/Intensive Blocks/IB_2')
@@ -157,9 +163,9 @@ vData <- maptools::readShapeSpatial('/Users/jon/ownCloud/Caribou project/Maps/SH
 #' IB_6 <- maptools::readShapePoly('Input/Intensive Blocks/IB_6')
 #' inRdata <- crop (inRdata,extent(IB_3))
 #'
-#' # Output a tile--be sure the filename matches the parameters! There is no other check!!
+#' # Output a tile--be sure the filename matches the parameters... there is no other check!!
 #' writeTile(modelRun$gbm,
-#'           inRdata,
+#'           egTile,
 #'           paste0(gisPath,'Renderings/identity_full_gbm_IB3.tif'),
 #'           layers=c('class','prob'))
 #' writeTiles(modelRun,
@@ -327,6 +333,9 @@ writeTiles <- function (models, inRdata, base, path='./', extension='.tif', echo
 #' @export
 #'
 #' @examples
+#' egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+#'                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+
 #' fx <- formula('siteID ~ brtns + grnns + wetns + dem + slp + asp + hsd')
 #' nnData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
 #' nnData <- get_all_vars(fx, nnData)

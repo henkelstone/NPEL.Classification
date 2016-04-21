@@ -23,8 +23,9 @@ This function looks up each point in a raster (point) dataset and returns the co
 sp::SpatialPoints. It is used to build combined remote-sensed and field data that can be input into a classification model.
 }
 \examples{
-library (maptools)
-vData <- readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
+egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+                   layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+vData <- maptools::readShapePoints(system.file("extdata/Plots", "Plots.shp", package = "NPEL.Classification"))
 siteData <- extractPoints(egTile,vData,c('EASTING','NORTHING'))
 detach ('package:maptools',unload=TRUE)
 }

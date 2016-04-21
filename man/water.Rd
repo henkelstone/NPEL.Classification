@@ -15,7 +15,8 @@ useful to mask them out. This \code{Raster.Layer} is a sample water mask for the
 examples section for how to use this mask.
 }
 \examples{
-data(egTile)
+egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+                   layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 data(water)
 plot (egTile)
 plot (raster::mask(egTile,water,maskvalue=1,updatevalue=NA))

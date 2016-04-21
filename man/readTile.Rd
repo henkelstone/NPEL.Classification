@@ -26,11 +26,11 @@ layer should be in it's own geoTiff, although multiple bands within a geoTiff ar
 }
 \examples{
 # Read egTile from the provided geoTiff's; gisPath must point to package installation folder.
-path <- paste0(system.file("extdata", "egTile", package = "NPEL.Classification"),'/')
-rData <- readTile(paste0(path,'/'), layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
+path <- file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),'')
+egTile <- readTile(path, layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 
 # Set the aspect layer to NA wherever slope is 0
-rData$asp <- calc (rData$asp,fun=function(x){ x[x == -1] <- NA; x })
+egTile$asp <- calc (egTile$asp,fun=function(x){ x[x == -1] <- NA; x })
 }
 \seealso{
 See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
