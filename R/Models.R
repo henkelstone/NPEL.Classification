@@ -629,6 +629,8 @@ modelsValid <- function(models, valid, ...) {
 #' models <- generateModels(nnData, suppModels[!suppModels %in% contModels], fx)
 #'
 #' fNN <- paste0(dirname(tempfile()),'/Tmp_nn.tif')
+#' egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+#'                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 #' egData <- writeTile (models[[1]], egTile, fNN, layers='class')
 #' names (egData) <- 'siteID'
 #'

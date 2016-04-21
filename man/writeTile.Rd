@@ -76,6 +76,8 @@ User preference: given those particulars, the user can choose what output they m
 rendering of approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish) --- ~2+ GB.
 }
 \examples{
+egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+                   layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 models <- generateModels (siteData, suppModels, x=c('brtns','grnns','wetns','dem','slp','asp','hsd'), y='ecoType')
 fName <- paste0(dirname(tempfile()),'/Tmp_rfsrc.tif')
 writeTile (models$rfsrc, egTile, fName, layers='class')
@@ -83,8 +85,10 @@ writeTiles (list(models$rfsrc), egTile, base='/Tmp_', path=dirname(fName), layer
 unlink (fName)
 
 \dontrun{
-# Example of real code with the option of cropping to a specific area
+# Example with the option of cropping to a specific area
 data ('Output/siteData.dat')
+egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+                   layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 
 # Choose a model with specified groupings to load
 type <- c('Full','Reduced')[2]                          # Select either full or reduced grouping
@@ -94,7 +98,7 @@ load (paste0('Output/',type,' Models/domGroup.dat'))
 load (paste0('Output/',type,' Models/MaxGranularity.dat'))
 rm (type)
 
-inRdata <- rData
+inRdata <- egTile
 # Choose a block and crop if desired
 IB_1 <- maptools::readShapePoly('Input/Intensive Blocks/IB_1')
 IB_2 <- maptools::readShapePoly('Input/Intensive Blocks/IB_2')
@@ -104,9 +108,9 @@ IB_5 <- maptools::readShapePoly('Input/Intensive Blocks/IB_5')
 IB_6 <- maptools::readShapePoly('Input/Intensive Blocks/IB_6')
 inRdata <- crop (inRdata,extent(IB_3))
 
-# Output a tile--be sure the filename matches the parameters! There is no other check!!
+# Output a tile--be sure the filename matches the parameters... there is no other check!!
 writeTile(modelRun$gbm,
-          inRdata,
+          egTile,
           paste0(gisPath,'Renderings/identity_full_gbm_IB3.tif'),
           layers=c('class','prob'))
 writeTiles(modelRun,

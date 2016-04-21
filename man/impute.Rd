@@ -69,6 +69,8 @@ values.
 \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 }
 \examples{
+egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
+                   layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
 fx <- formula('siteID ~ brtns + grnns + wetns + dem + slp + asp + hsd')
 nnData <- cbind(siteID=factor(1:nrow(siteData)),siteData)
 nnData <- get_all_vars(fx, nnData)
