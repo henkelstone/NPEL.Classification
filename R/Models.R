@@ -96,7 +96,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
     data[,y] <- trimLevels(as.factor(data[,y]))
   } else if (!isCont(data[,y])) stop("generateModels: specified y satisfied neither isCat nor isCont; check data class.")
   # x <- x[0 == apply (data[,x],2,FUN=function (x){ sum(is.na(x)) })]         # Remove columns with NA values
-  data <- data[0 == apply (data[,x],1,FUN=function (x){ sum(is.na(x)) }),]    # Remove rows with NA values ???
+  data <- data[0 == apply (data[,x],1,FUN=function (x){ sum(is.na(x)) }),]    # Remove rows with NA values
 
   # Generate argument lists for each function type, i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
