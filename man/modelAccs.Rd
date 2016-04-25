@@ -4,10 +4,12 @@
 \alias{modelAccs}
 \title{Generate accuracy statistics and variable importance for a list of models; a wrapper for \code{classAcc}.}
 \usage{
-modelAccs(models, ...)
+modelAccs(models, VIMP = TRUE, ...)
 }
 \arguments{
 \item{models}{is either a list of model objects on which to find error statistics, or a single model to evaluate.}
+
+\item{VIMP}{(optional) should we attempt to append the VIMP data; defaults to TRUE}
 
 \item{...}{(optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.}
 }

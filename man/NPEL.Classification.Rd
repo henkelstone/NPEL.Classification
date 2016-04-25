@@ -29,7 +29,7 @@ These tasks fall into six main groups with the following functions associated wi
   }
 \item Extract data from the raster
   \itemize{
-    \item \code{\link{extractPoints}} -- given a collection of spatial points (package:maptools), extract the raster
+    \item \code{\link{extractPoints}} -- given a collection of spatial points (\pkg{\link{maptools}}), extract the raster
       data under them. This is allows the construction of a model linking site characteristics--most notably
       ecoSite--to remote sense variables.
   }

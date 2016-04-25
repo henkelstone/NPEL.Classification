@@ -96,7 +96,7 @@ generateModels <- function (data, modelTypes, fx=NULL, x=NULL, y=NULL, grouping=
     data[,y] <- trimLevels(as.factor(data[,y]))
   } else if (!isCont(data[,y])) stop("generateModels: specified y satisfied neither isCat nor isCont; check data class.")
   # x <- x[0 == apply (data[,x],2,FUN=function (x){ sum(is.na(x)) })]         # Remove columns with NA values
-  data <- data[0 == apply (data[,x],1,FUN=function (x){ sum(is.na(x)) }),]    # Remove rows with NA values ???
+  data <- data[0 == apply (data[,x],1,FUN=function (x){ sum(is.na(x)) }),]    # Remove rows with NA values
 
   # Generate argument lists for each function type, i.e. merge default and provided arguments
   #   Note: for some reason the different rf algorithms get different answers for the 'same' formula of mtry so it is specified manually
@@ -482,6 +482,7 @@ validate <- function(model, valid, ...){
 #'   See the details section of \code{\link{npelVIMP}} for a discussion of the limitations of our VIMP metric.
 #'
 #' @param models is either a list of model objects on which to find error statistics, or a single model to evaluate.
+#' @param VIMP (optional) should we attempt to append the VIMP data; defaults to TRUE
 #' @param ... (optional) other parameters to pass to \code{\link{classAcc}} and/or \code{\link{npelVIMP}}.
 #'
 #' @return This function returns different values depending on whether the model is categorical or continuous. For categorical data it
@@ -524,10 +525,10 @@ validate <- function(model, valid, ...){
 #' mE <- modelAccs (modelRun)
 #' str(mE,1)
 #' @export
-modelAccs <- function (models, ...) {
+modelAccs <- function (models, VIMP=TRUE, ...) {
   if (!'list' %in% class(models)[[1]]) models <- list (models)       # In case it is only a single model, wrap it in a list
-  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=NULL, func=classAcc, VIMP=TRUE, ...) }
-  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=NULL, func=classAcc, VIMP=TRUE, ...) }
+  if (isCat(models[[1]])) { wrapAccs.Cat(models=models, valid=NULL, func=classAcc, VIMP=VIMP, ...) }
+  else if (isCont(models[[1]])) { wrapAccs.Cont(models=models, valid=NULL, func=classAcc, VIMP=VIMP, ...) }
   else stop("modelAccs: model satisfied neither categorical or continuous criteria.")
 }
 

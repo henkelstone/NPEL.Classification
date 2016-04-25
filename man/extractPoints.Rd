@@ -9,7 +9,7 @@ extractPoints(rData, vData, locs, na.omit = TRUE)
 \arguments{
 \item{rData}{the raster data as a raster.* object; can be read in using \code{\link{readTile}}}
 
-\item{vData}{the point data as a data frame or a SpatialPointsDataFrame, i.e. read in with maptools::readShapePoints}
+\item{vData}{the point data as a data frame or a SpatialPointsDataFrame, i.e. read in with \code{\link[maptools]{readShapePoints}}}
 
 \item{locs}{the columns which contain the locations\ldots c(easting, northing)}
 

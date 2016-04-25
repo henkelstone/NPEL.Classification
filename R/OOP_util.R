@@ -596,7 +596,9 @@ buildPredict.fnn.FNN <- function(model) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
       x <- attr(terms(getFormula(model)),'term.labels')
-      data <- scale(data[,x])
+      sDev <- apply(data[,x],2,sd)
+      sDev[sDev == 0] <- 1
+      data <- scale(data[,x],scale=sDev)
     }
     return ( FNN::knn(train=model$train, test=data[,names(model$train)], cl=model$classes, k=getArgs(model)$k,...) )
   } )
@@ -609,7 +611,9 @@ buildPredict.fnn.class <- function(model) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
       x <- attr(terms(getFormula(model)),'term.labels')
-      data <- scale(data[,x])
+      sDev <- apply(data[,x],2,sd)
+      sDev[sDev == 0] <- 1
+      data <- scale(data[,x],scale=sDev)
     }
     return ( class::knn(model$train,data[,names(model$train)],model$classes,getArgs(model)$k,...) )
   } )
@@ -622,7 +626,9 @@ buildPredict.kknn <- function(model) {
     data[is.na(data)] <- 0
     if (getArgs(model)$scale) {
       x <- attr(terms(getFormula(model)),'term.labels')
-      data <- as.data.frame(scale(data[,x]))
+      sDev <- apply(data[,x],2,sd)
+      sDev[sDev == 0] <- 1
+      data <- as.data.frame(scale(data[,x],scale=sDev))
     }
     return( kknn::kknn(formula=model$terms,train=model$data,test=data,k=model$best.parameters[[2]],kernel=model$best.parameters[[1]],getArgs(model)[c('kmax','kernel')],...)$fitted.values)
   } )
