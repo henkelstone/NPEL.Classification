@@ -111,3 +111,7 @@ detach('package:raster',unload=TRUE)
 \seealso{
 \code{\link{raster}} package
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6dd30532a9a00ffaf3aa8408f6d492dde4dfc06f
