@@ -379,8 +379,8 @@ classAcc <- function (pred, valid, weights=NULL, classNames=NULL, ...) {
 classAcc.Cat <- function (pred, valid, weights, classNames) {
   pred <- trimLevels(pred);          valid <- trimLevels(valid)
   pred <- mergeLevels(pred,valid);   valid <- mergeLevels(valid,pred)
-  if (!is.null(classNames) && length (classNames) != max(as.numeric(levels(valid)))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
-  if (is.null(classNames)) { classNames <- as.numeric(levels(valid)) } else { classNames <- classNames [as.numeric(levels(valid))] }
+  if (!is.null(classNames) && is.numeric(factorLevels(valid)) && length(classNames) != max(factorLevels(valid))) { warning("classAcc: classnames does not contain the same number of values as there are classes; using default values"); classNames <- NULL }
+  if (is.null(classNames) || !is.numeric(factorLevels(valid)) ) { classNames <- factorLevels(valid) } else { classNames <- classNames [factorLevels(valid)] }
 
   if (is.null(weights)) weights <- rep(1,length(pred))
   conf <- xtabs(weights~pred+valid, data.frame(pred,valid,weights))
@@ -704,7 +704,7 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
 
   y <- NULL
   fx2vars(getFormula(models[[1]]),y=y)
-  if (!is.null(args[['classNames']]) && (length(args[['classNames']]) != max(as.numeric(levels(getData(models[[1]])[,y]))))) {
+  if (!is.null(args[['classNames']]) && is.numeric(factorLevels(getData(models[[1]])[,y])) && (length(args[['classNames']]) != max(factorLevels(getData(models[[1]])[,y])))) {
     warning("modelAccs: classnames does not contain the same number of values as there are classes; using default values");
     args[['classNames']] <- NULL
   }
@@ -736,8 +736,9 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
       cols <- 2:(ncol(tmp)-( if ('gbm' %in% class(i) && !args[['calc']]) 1 else 0 ))
 
       classN <- args[['classNames']]
-      if (!is.null(classN) && length (classN) != max(as.numeric(levels(getData(i)[,y])))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
-      if (is.null(classN)) { classN <- as.numeric(levels(getData(i)[,y])) } else { classN <- classN [as.numeric(levels(getData(i)[,y]))] }
+      if (!is.null(classN) && is.numeric(factorLevels(getData(models[[1]])[,y])) && length (classN) != max(factorLevels(getData(i)[,y]))) { warning("modelAccs: classnames does not contain the same number of values for this model; using default values"); classN <- NULL }
+      if (is.null(classN) || !is.numeric(factorLevels(getData(i)[,y])) ) { classN <- factorLevels(getData(i)[,y]) } else { classN <- classN [factorLevels(getData(i)[,y])] }
+
       if (colnames(tmp)[1] != 'rel.inf') {
         colnames(tmp)[cols] <- classN       # gbm is an unusal case in that it doesn't compute class level VIMP by default
         outVIMP <- c(outVIMP, list(tmp[,2:ncol(tmp)]))
@@ -746,19 +747,16 @@ wrapAccs.Cat  <- function(models, valid, func, VIMP, echo=FALSE, ...) {
       VIMPoverall <- as.data.frame(cbind(VIMPoverall, tmp[,1]))
     }
   }
-  l <- length(userAcc$class); rownames(userAcc) <- c(userAcc$class[1:(l-1)],'overall')
-  l <- length(prodAcc$class); rownames(prodAcc) <- c(prodAcc$class[1:(l-1)],'overall')
-  userAcc <- userAcc[,-1]
-  prodAcc <- prodAcc[,-1]
+  l <- length(userAcc$class); rownames(userAcc) <- c(factorValues(userAcc$class)[1:(l-1)],'overall')
+  l <- length(prodAcc$class); rownames(prodAcc) <- c(factorValues(prodAcc$class)[1:(l-1)],'overall')
+  userAcc <- userAcc[,-1,drop=F]
+  prodAcc <- prodAcc[,-1,drop=F]
   names(userAcc) <- names(prodAcc) <- names(confMatrix) <- names(kappa) <- colNames
 
   if (VIMP) {
-    # names(outVIMP) <-
-      names(VIMPoverall) <- colNames
+    names(VIMPoverall) <- colNames
     return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa, VIMP=outVIMP, VIMPoverall=VIMPoverall))
-  } else {
-    return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa))
-  }
+  } else return (list(confMatrix=confMatrix, userAcc=userAcc, prodAcc=prodAcc, kappa=kappa))
 }
 #' @rdname wrapAccs.Cat
 #' @export

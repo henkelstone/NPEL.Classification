@@ -17,4 +17,3 @@ the factor x with the levels of y merged to the x levels
 \description{
 Merge the levels of two factors; the factors of y not present in x will be added to the x levels.
 }
-

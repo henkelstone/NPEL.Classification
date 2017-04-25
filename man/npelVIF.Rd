@@ -35,4 +35,3 @@ The function returns a named list of several details from the computation of the
 data (siteData)
 npelVIF(formula('Ecotype ~ brtns+grnns+wetns+dem+slp+asp+hsd'),siteData)
 }
-

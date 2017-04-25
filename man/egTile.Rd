@@ -111,4 +111,3 @@ detach('package:raster',unload=TRUE)
 \seealso{
 \code{\link{raster}} package
 }
-

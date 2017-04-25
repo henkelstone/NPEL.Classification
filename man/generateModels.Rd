@@ -101,4 +101,3 @@ Also see any of the supported packages, currently: \pkg{\link[randomForest]{rand
 \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}}, \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}},
 \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
 }
-

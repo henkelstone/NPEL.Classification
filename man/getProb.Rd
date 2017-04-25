@@ -28,4 +28,3 @@ Also note that this function is only useful for categorical data (\code{\link{is
 \seealso{
 \code{\link{isCat}}, and \code{\link{isCont}}.
 }
-

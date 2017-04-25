@@ -22,4 +22,3 @@ plotTiles(path, base, extension, models, type = "pdf", ...)
 \description{
 Outputs plots of multiple data files into a single folder
 }
-

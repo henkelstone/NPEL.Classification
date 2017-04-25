@@ -50,4 +50,3 @@ modelsValid(modelRun,valid)
 \seealso{
 \code{\link{classAcc}}
 }
-

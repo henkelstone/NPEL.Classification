@@ -87,4 +87,3 @@ str (mAcc,1)
 \seealso{
 \code{\link{generateModels}} for creating models; \code{\link{isCat}}, \code{\link{isCont}} for how categorical/continuous type is evaluated.
 }
-

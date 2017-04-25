@@ -33,6 +33,7 @@ names were extracted.
 
 Note, use this function with caution as it changes your calling parameters! See Value for more information...
 }
+
 \examples{
 fx <- x <- y <- NULL
 fx2vars(formula('a~b+c'), x, y)
@@ -47,4 +48,3 @@ fx <- x <- y <- NULL
 fx2vars(formula('a~b+c'), x, y, names=c('a','b'))
 c (fx, x, y)  # x has been trimmed to only contain 'b' as 'c' does not occur in names }
 }
-

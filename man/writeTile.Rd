@@ -75,6 +75,7 @@ User preference: given those particulars, the user can choose what output they m
  Runtimes may be long! On a 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and SSD) it takes 12-15 hours to do a full
 rendering of approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish) --- ~2+ GB.
 }
+
 \examples{
 egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
@@ -126,4 +127,3 @@ plot (mask(egTile,water,maskvalue=1,updatevalue=NA)) }
 \seealso{
 \code{\link{writeTiles}} for an automated way to render all models in a model block
 }
-

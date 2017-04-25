@@ -26,4 +26,3 @@ a ggplot object which can have geoms, scales, etc. added to it (see PlotTile).
 \description{
 Creates a base ggplot object of the raster object
 }
-

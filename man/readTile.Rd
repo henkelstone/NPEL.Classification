@@ -35,4 +35,3 @@ egTile$asp <- calc (egTile$asp,fun=function(x){ x[x == -1] <- NA; x })
 \seealso{
 See the sample data \code{\link{egTile}} for an example, and the associated help for examples on how to generate derived data.
 }
-

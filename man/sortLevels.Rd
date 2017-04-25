@@ -15,4 +15,3 @@ the same factor variable with levels sorted
 \description{
 Sort the levels in a factor
 }
-

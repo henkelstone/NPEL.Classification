@@ -73,6 +73,7 @@ function does not fall on the same scale as that given by other methods. This is
 VIMP in general. In fact, that our model can compute VIMP on all the models used is one of its strengths. However, do not try and compare
 (or plot) the VIMP output from different models/packages against each other; they are only valid as relative values.
 }
+
 \examples{
 data ('siteData')
 modelRun <- generateModels (data = siteData,
@@ -87,4 +88,3 @@ npelVIMP (modelRun$rfsrc,calc=TRUE)
 For VIMP information about packages used that have the metric build-in: \code{\link[randomForest]{importance}},
   \code{\link[randomForestSRC]{rfsrc}}, and \code{\link[gbm]{summary.gbm}}.
 }
-

@@ -25,4 +25,3 @@ the ggplot object with additional aes and scale
 \description{
 Given a ggplot base object create a finished plot
 }
-

@@ -37,4 +37,3 @@ prob2class(p)
 \seealso{
 \code{\link{isCat}}, \code{\link{isCont}}, and \code{\link{factorValue}} for help in handling the result.
 }
-

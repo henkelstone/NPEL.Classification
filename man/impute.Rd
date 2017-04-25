@@ -69,6 +69,7 @@ values.
 
 \bold{It would be \emph{much} safer} to do your own typecast \bold{\emph{before}} passing the data to \code{impute}! 'Nuf said...
 }
+
 \examples{
 egTile <- readTile(file.path(system.file("extdata", "egTile", package = "NPEL.Classification"),''),
                    layers=c('base','grnns','wetns','brtns','dem','slp','asp','hsd'))
@@ -99,4 +100,3 @@ unlink (fImpute)
   \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.\cr
   \code{\link{nnErrMap}} for outputting nearest neighbour distances, and generating accuracies from these.
 }
-

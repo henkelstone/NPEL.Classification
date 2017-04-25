@@ -25,4 +25,3 @@ plot (raster::mask(egTile,water,maskvalue=1,updatevalue=NA))
 See \code{\link{writeTile}} and \code{\link{writeTiles}} for examples of rendering.
 }
 \keyword{datasets}
-

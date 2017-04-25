@@ -220,7 +220,7 @@ writeTile <- function (model, inRdata, outFilename, layers=c("class"), threshold
     if (isCont(model)) {
       outData <- list(prob)
     } else {
-      if( pmatch (c('fnn','class'),class(model),nomatch=0) ) { outData <- factorValues(prob) } # Technically could get rid of this as prob2class will return the same, but it avoids a warning...
+      if( any(pmatch(c('fnn','class'), class(model), nomatch=0) > 0) ) { outData <- factorValues(prob) } # Technically could get rid of this as prob2class will return the same, but it avoids a warning...
       else {
         outData <- list ( (if ('class' %in% layers) outClass <- factorValues(prob2class(prob))),
                           (if ('prob' %in% layers) maxProb <- apply(prob, 1, max)),

@@ -11,19 +11,39 @@ facA <- c(2,3,5,1);     lvlA <- c(3:5,1:2)
 facB <- c(12,13,15,11); lvlB <- c(13:15,11:12)
 tFacA <- factor (facA, levels=lvlA)
 tFacB <- factor (facB, levels=lvlB)
+
+cFacA <- letters[factorValues(facA)];  cLvlA <- letters[factorValues(lvlA)];
+cFacB <- letters[factorValues(facB)];  cLvlB <- letters[factorValues(lvlB)];
+tcFacA <- factor (cFacA, levels=cLvlA)
+tcFacB <- factor (cFacB, levels=cLvlB)
+
 facC <- factor(NULL)
 
+# Test
 test_that("factorValues", {
   expect_equal(factorValues(tFacA), facA)
   expect_equal(factorValues(tFacB), facB)
+  expect_equal(factorValues(tcFacA), cFacA)
+  expect_equal(factorValues(tcFacB), cFacB)
   expect_equal(class(factorValues(facC)), 'numeric')
   expect_equal(length(factorValues(facC)), 0)
+})
+
+test_that("factorLevels", {
+  expect_equal(factorLevels(tFacA), lvlA)
+  expect_equal(factorLevels(tFacB), lvlB)
+  expect_equal(factorLevels(tcFacA), cLvlA)
+  expect_equal(factorLevels(tcFacB), cLvlB)
+  expect_equal(length(factorLevels(facC)), 0)
 })
 
 test_that("sortLevels", {
   sFac <- sortLevels(tFacA)
   expect_equal(factorValues(sFac), facA)
   expect_equal(as.numeric(levels(sFac)), c(1:5))
+  scFac <- sortLevels(tcFacA)
+  expect_equal(factorValues(scFac), cFacA)
+  expect_equal(levels(scFac), letters[c(1:5)])
   sFac <- sortLevels(facC)
   expect_equal(class(sFac), 'factor')
   expect_equal(length(sFac), 0)
@@ -33,6 +53,9 @@ test_that("trimLevels", {
   sFac <- trimLevels(tFacA)
   expect_equal(factorValues(sFac), facA)
   expect_equal(as.numeric(levels(sFac)), c(3,5,1,2))
+  scFac <- trimLevels(tcFacA)
+  expect_equal(factorValues(scFac), cFacA)
+  expect_equal(levels(scFac), letters[c(3,5,1,2)])
   sFac <- trimLevels(facC)
   expect_equal(class(sFac), 'factor')
   expect_equal(length(sFac), 0)
@@ -42,6 +65,9 @@ test_that("mergeLevels", {
   sFac <- mergeLevels(tFacA,tFacB)
   expect_equal(factorValues(sFac), facA)
   expect_equal(as.numeric(levels(sFac)), sort(c(lvlA,lvlB)))
+  scFac <- mergeLevels(tcFacA,tcFacB)
+  expect_equal(factorValues(scFac), cFacA)
+  expect_equal(levels(scFac), sort(c(cLvlA,cLvlB)))
   sFac <- mergeLevels(tFacA,facC)
   expect_equal(sFac, sortLevels(tFacA))
 })

@@ -30,4 +30,3 @@ These functions are intended for internal use---as such no defaults are provided
 checking. Using this function it is possible, however, to do things like recover VIMP data using a validating dataset, which is not
 possible using the default package functions.
 }
-

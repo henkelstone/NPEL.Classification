@@ -15,4 +15,3 @@ the same data with the levels trimmed to reflect the factors that are present
 \description{
 Trim the levels so the only levels present are ones that actually have data
 }
-

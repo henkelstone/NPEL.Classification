@@ -34,4 +34,3 @@ isCont(siteData$slope)
 \dontrun{
 isCont(model) }
 }
-

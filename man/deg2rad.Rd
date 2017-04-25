@@ -18,4 +18,3 @@ The angle in radians (or degrees)
 \description{
 Convert degrees to radians and vice versa
 }
-

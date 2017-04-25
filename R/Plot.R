@@ -14,7 +14,7 @@
 #' @export
 plotTile.base <- function(data, layers=NULL, title="", maxpixels=500000, reduction=1, ...) {
   if (!requireNamespace('ggplot2')) stop("ggplot2 package required for plotting")
-  if (!is.null(layers)) data <- subset(data,layers)
+  if (!is.null(layers)) data <- raster::subset(data,layers)
 
   # Theres a glitch in sampleRegular: we can't just simply ask for sR(data, number of cells, xy=TRUE) as it doesn't return the same values
   # for xy as if we do it step by step: x <- sR(data,#cells,xy=FALSE,raster=TRUE); xyFromCell(x,1:#cells). I don't know why this is, but it
@@ -27,7 +27,7 @@ plotTile.base <- function(data, layers=NULL, title="", maxpixels=500000, reducti
   dat <- reshape(data=data,direction='long',idvar=1:2,varying=3:dim(data)[2],v.names='value',timevar='type',times=names(data)[3:dim(data)[2]]) # Massage into long form; over a GB for a full tile!
 
   # Create a base plot object with some useful aesthetics and that holds the data; then if this is not the only plot the user wants, they should be able to output more without needing to resample the data
-  return( ggplot2::ggplot(ggplot2::aes(x = 'x', y = 'y'), data = 'dat', ...) +
+  return( ggplot2::ggplot(ggplot2::aes(x = 'x', y = 'y'), data = dat, ...) +
             ggplot2::theme(axis.text.y=ggplot2::element_text(angle=90,hjust=0.5)) + ggplot2::coord_equal() +
             ggplot2::labs(title=title,x='Latitude (UTM)',y='Longitude (UTM)',fill='Value') )
 }
@@ -56,7 +56,7 @@ plotTile <- function(gp, layers, discrete, colours, labels=NULL,...){
     if (is.null(labels)) return( gp + ggplot2::aes(fill='factor(value)') + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values=colours) )
     else                 return( gp + ggplot2::aes(fill='factor(value)') + ggplot2::geom_raster() + ggplot2::scale_fill_manual(values=colours, labels=labels) )
   } else {
-    if (length (colours) == 2) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient (low=colours[1], high=colours[2]) + ggplot2::facet_wrap('~type') )
+    if (length (colours) == 2) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient (low=colours[1], high=colours[2]) ) #+ ggplot2::facet_wrap('~type') )
     if (length (colours) == 3) return( gp + ggplot2::aes(fill='value') + ggplot2::geom_raster() + ggplot2::scale_fill_gradient2(low=colours[1], mid=colours[2], high=colours[3], midpoint=(max(gp$data$value,na.rm=TRUE)-min(gp$data$value,na.rm=TRUE))/2) + ggplot2::facet_wrap('~type') )
   }
 }

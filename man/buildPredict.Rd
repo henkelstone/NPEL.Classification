@@ -22,4 +22,3 @@ The nearest neighbour models in package:FNN and package:class do not enclose the
   builds objects of these types it wraps them in a class so they are recognizable by S3 methods, and attaches the formula and data.
   Hence, if a model was built directly using these packages, the result will not run this function.
 }
-

@@ -73,4 +73,3 @@ names (vData) <- c('objID','plotNum','block','type','landClass','ecoRegion','GPS
 See \code{\link{extractPoints}} for a function to extract raster data for these sites, and \code{\link{generateModels}} for model building.
 }
 \keyword{datasets}
-

@@ -147,6 +147,7 @@ Good luck and I hope this work does what you need it to do...
 NPEL.Classification must be \emph{before} \pkg{raster} on the search path; in particular \code{getData} is a valid function in both
 packages. If you are getting very unusual errors, consider detaching and reattaching this package so it is found first.
 }
+
 \seealso{
 The code in this package depends heavily on the \pkg{\link[raster]{raster}} package. A couple of functions utilize
 \pkg{\link[maptools]{maptools}}.
@@ -154,4 +155,3 @@ The code in this package depends heavily on the \pkg{\link[raster]{raster}} pack
 Currently supported modelling packages are: \pkg{\link[randomForest]{randomForest}}, \pkg{\link[randomForestSRC:rfsrc]{randomForestSRC}},
 \pkg{\link[FNN:knn.cv]{FNN}}, \pkg{\link[class:knn.cv]{class}}, \pkg{\link[kknn:train.kknn]{kknn}}, and \pkg{\link[gbm]{gbm}}.
 }
-

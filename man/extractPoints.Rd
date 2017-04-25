@@ -34,4 +34,3 @@ detach ('package:maptools',unload=TRUE)
   and some examples on generating derived raster layers, and \code{\link{siteData}} for an example of the output of this function. See
   also \code{\link[maptools]{readShapePoints}} for more on reading-in vector data from a shapefile.
 }
-

@@ -3,9 +3,9 @@
 \docType{data}
 \name{Constants}
 \alias{Constants}
-\alias{contModels}
-\alias{probModels}
 \alias{suppModels}
+\alias{probModels}
+\alias{contModels}
 \title{Package Constants}
 \format{A list of models that are supported. These represent the internal codes used by this package.}
 \usage{
@@ -24,6 +24,7 @@ Global constants that define the bounds of this packages functionality
     \code{\link[=impute]{imputed}} from this.
 }
 }
+
 \examples{
 \dontrun{
 suppModels <- c('randomForest','rfsrc','fnn.FNN','fnn.class','kknn','gbm')  # Which packages (model classes) are supported by NPEL.Classification
@@ -31,4 +32,3 @@ probModels <- c('randomForest','rfsrc','fnn.FNN','fnn.class','kknn','gbm')  # Wh
 contModels <- c('randomForest','rfsrc','kknn','gbm')                               # Which packages are able to handle continuous data
 }
 }
-

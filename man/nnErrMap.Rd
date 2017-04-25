@@ -83,4 +83,3 @@ unlink (fEMap)
 \code{\link{generateModels}}, and \code{\link{writeTile}} for more information on building models for imputation purposes.\cr
   \code{\link{impute}} for imputing other values from the map of nearest neighbours.
 }
-

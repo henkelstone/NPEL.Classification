@@ -86,6 +86,7 @@ section for more information on this gotcha.
 
 \code{(1:27)[siteData$Ecotype]} returns the factor \emph{index} rather than the ecoGroup.
 }
+
 \examples{
 data (siteData)
 ecoGroup[['domSpecies','transform']][ factorValues(siteData$ecoType) ]
@@ -125,4 +126,3 @@ ecoGroup['domGroup',] <- list(
 )
 }
 \keyword{datasets}
-

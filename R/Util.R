@@ -6,7 +6,10 @@
 #' @param x the factor to process
 #' @return the same factor variable with levels sorted
 #' @export
-sortLevels <- function (x) { factor(x,levels=sort(as.numeric(levels(x)))) }
+sortLevels <- function (x) {
+  if (suppressWarnings( anyNA(as.numeric(levels(x))) )) factor(x,levels=sort(levels(x)))
+  else factor(x,levels=sort(as.numeric(levels(x))))
+}
 
 ##### trimLevels #####
 #' Trim the levels so the only levels present are ones that actually have data
@@ -31,15 +34,32 @@ mergeLevels <- function (x,y) {
 #' Retrieve the values within a factor object
 #'
 #' This function retrieves the *values* within a factor object. There is a subtle but serious gotcha when using factors
-#' that is outlined in the help for factor() under the Warning section. Notably, then using factors, what is returned
+#' that is outlined in the help for factor() under the Warning section. Notably, then type-casting factors, what is returned
 #' is the *indices* of the factor, not the values stored in the factor. This is fairly easy to catch when factors are
 #' type character, but can cause serious bugs when they are numeric. The purpose of this function is to provide an easy
 #' way to return the values stored within a factor
 #'
-#' @param x the factor from which to extract (numeric) values
-#' @return the (numeric) values stored in the factor
+#' @param x the factor from which to extract values
+#' @return the values stored in the factor; this will be numeric if possible, character otherwise
 #' @export
-factorValues <- function (x) { as.numeric(as.character(x)) }
+factorValues <- function (x) {
+  if (suppressWarnings( anyNA(as.numeric(as.character(x))))) as.character(x)
+  else as.numeric(as.character(x))
+}
+
+##### factorLevels #####
+#' Retrieve the levels within a factor object
+#'
+#' This function is essentially the same as the levels command in base, but it will type-cast the return to numeric when
+#' that is valid.
+#'
+#' @param x the factor from which to extract the levels
+#' @return the levels; this will be numeric if possible, character otherwise
+#' @export
+factorLevels <- function (x) {
+  if (suppressWarnings( anyNA(as.numeric(levels(x))) )) as.character(levels(x))
+  else as.numeric(levels(x))
+}
 
 ##### deg2rad #####
 #' Convert degrees to radians and vice versa

@@ -63,4 +63,3 @@ str(mV,2)
 \code{\link{classAcc}} for more on the computation of continuous and categorical accuracies, and \code{\link{modelAccs}} for the
   corresponding function that will compute accuracy based on the dataset used for model building.
 }
-

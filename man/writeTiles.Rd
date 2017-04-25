@@ -39,10 +39,10 @@ Runtimes may be long! On an 2015 iMac (Intel I5 quad-core 3.3 GHz, 8GB RAM, and 
 single tile approximately 15k x 15k pixels (=225 Mpix). Also, output file sizes can be large(ish)---~2+ GB... and this is only for a
 single tile. It is recommended that writeTiles be reserved for outputting comparison tiles of a smaller size, or subsampled data.
 }
+
 \examples{
 # See the examples at writeTile.
 }
 \seealso{
 \code{\link{writeTile}} for the engine that does the rendering
 }
-

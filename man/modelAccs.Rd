@@ -79,4 +79,3 @@ str(mE,1)
 \code{\link{classAcc}} for more on continuous and categorical accuracies, and \code{\link{npelVIMP}} for more on how that metric
   is computed and it's limitations. Also see \code{\link{modelsValid}} for a function to compute accuracies using an independent dataset.
 }
-
